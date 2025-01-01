@@ -1,8 +1,6 @@
 use crate::entities::prelude::Traits;
 use crate::entities::prelude::{TierDefaults, TraitDefaults};
-use crate::entities::{
-    contact, ppl, relation, sig_date, tier_defaults, trait_defaults, traits,
-};
+use crate::entities::{contact, ppl, relation, sig_date, tier_defaults, trait_defaults, traits};
 use crate::PplError;
 use chrono::NaiveDate;
 use crossterm::event;
@@ -15,8 +13,8 @@ use ratatui::{
     widgets::*,
     DefaultTerminal,
 };
-use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::sqlx::types::chrono;
+use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait};
 use std::fmt;
@@ -578,19 +576,22 @@ pub async fn run_init(
                                 }
 
                                 if !app.trait_list.is_empty() {
-                                    let trait_am = app.trait_list.iter().map(|dtrait|
-                                            trait_defaults::ActiveModel {
-                                                id: Default::default(),
-                                                key: Set(dtrait.name.clone()),
-                                                default: Set(true),
-                                                enabled: Set(true),
-                                                is_date: Set(dtrait.is_date),
-                                                is_contact: Set(dtrait.is_contact),
-                                                color: Set(dtrait.color.clone()),
-                                                symbol: Set(dtrait.symbol.clone()),
-                                                date_ins: Set(Local::today().naive_local()),
-                                                date_up: Set(Local::today().naive_local()),
-                                            }).collect::<Vec<trait_defaults::ActiveModel>>();
+                                    let trait_am = app
+                                        .trait_list
+                                        .iter()
+                                        .map(|dtrait| trait_defaults::ActiveModel {
+                                            id: Default::default(),
+                                            key: Set(dtrait.name.clone()),
+                                            default: Set(true),
+                                            enabled: Set(true),
+                                            is_date: Set(dtrait.is_date),
+                                            is_contact: Set(dtrait.is_contact),
+                                            color: Set(dtrait.color.clone()),
+                                            symbol: Set(dtrait.symbol.clone()),
+                                            date_ins: Set(Local::today().naive_local()),
+                                            date_up: Set(Local::today().naive_local()),
+                                        })
+                                        .collect::<Vec<trait_defaults::ActiveModel>>();
 
                                     let trtr = TraitDefaults::insert_many(trait_am).exec(&db).await;
                                     match trtr {
@@ -687,7 +688,11 @@ pub async fn run_init(
                             app.input.handle_event(&Event::Key(key_event));
                         }
                     },
-                    KeyCode::Tab => if app.step == Steps::Tiers { app.toggle_tier_editing() },
+                    KeyCode::Tab => {
+                        if app.step == Steps::Tiers {
+                            app.toggle_tier_editing()
+                        }
+                    }
                     // app.input.handle_event(&Event::Key(key));
                     // KeyCode::Left => self.decrement_counter(),
                     // KeyCode::Right => self.increment_counter(),
