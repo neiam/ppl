@@ -1,5 +1,4 @@
 use sea_orm::DatabaseConnection;
-use log::info;
 use sea_orm_migration::MigratorTrait;
 use crate::migrator::Migrator;
 use crate::PplError;

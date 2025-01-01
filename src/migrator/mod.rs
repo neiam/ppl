@@ -1,6 +1,5 @@
 use sea_orm_migration::prelude::*;
 
-use sea_orm_migration::prelude::*;
 
 mod m20241219_000001_create_ppl;
 mod m20241220_000002_create_contact;

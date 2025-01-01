@@ -1,6 +1,5 @@
-use crate::migrator::m20241219_000001_create_ppl::Ppl;
 use sea_orm::sea_query::{ColumnDef, Table};
-use sea_orm::{sea_query, DbErr, DeriveIden, ForeignKeyAction};
+use sea_orm::{DbErr, DeriveIden};
 use sea_orm_migration::{MigrationName, MigrationTrait, SchemaManager};
 
 pub struct Migration;

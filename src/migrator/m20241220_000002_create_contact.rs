@@ -1,5 +1,3 @@
-use crate::migrator::m20241219_000001_create_ppl::Ppl;
-use crate::migrator::m20241220_000003_create_entity::Entitys;
 use sea_orm_migration::prelude::*;
 
 pub struct Migration;

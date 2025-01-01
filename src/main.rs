@@ -1,28 +1,16 @@
 use clap::{Parser, Subcommand};
-use crossterm::{
-    event::{self, Event, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-};
-use futures::executor::block_on;
+use crossterm::event::{Event};
 use log::info;
-use ratatui::{prelude::*, widgets::*, DefaultTerminal};
 use sea_orm::*;
-use sea_orm_migration::SchemaManager;
-use std::io::{self, stdout};
+use std::io::{self};
 use color_eyre::eyre::ErrReport;
-use Event::Key;
 
 mod entities;
 mod migrator;
 mod db;
 mod do_init;
 
-use crate::entities::ppl::Model as PplModel;
-use crate::entities::tier_defaults::Model as TiDModel;
-use crate::entities::trait_defaults::Model as TrDModel;
-use crate::migrator::Migrator;
-use entities::{prelude::*, *};
+use entities::prelude::*;
 use crate::entities::ppl::Column::Me;
 
 #[derive(Debug)]
@@ -124,7 +112,7 @@ async fn main() -> Result<(), PplError> {
                     let terminal = ratatui::init();
                     let result = do_init::run_init(terminal, db).await;
                     ratatui::restore();
-                    result;
+                    drop(result);
                     info!("Init complete");
                 }
                 true => {

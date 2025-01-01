@@ -1,29 +1,24 @@
-use crate::entities::prelude::Ppl;
 use crate::entities::prelude::Traits;
-use crate::entities::prelude::{Entitys, TierDefaults, TraitDefaults};
-use crate::entities::sig_date::Model;
+use crate::entities::prelude::{TierDefaults, TraitDefaults};
 use crate::entities::{
-    contact, entitys, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
+    contact, ppl, relation, sig_date, tier_defaults, trait_defaults, traits,
 };
 use crate::PplError;
 use chrono::NaiveDate;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use enum_iterator::{all, cardinality, first, last, next, previous, reverse_all, Sequence};
+use enum_iterator::{all, next, previous, Sequence};
 use interim::{parse_date_string, Dialect};
-use log::{info, warn};
 use ratatui::{
     prelude::*,
     style::{palette::tailwind::*, Color, Modifier, Style, Stylize},
     widgets::*,
     DefaultTerminal,
 };
-use sea_orm::prelude::Date;
 use sea_orm::sqlx::types::chrono::Local;
-use sea_orm::sqlx::types::{chrono, time};
+use sea_orm::sqlx::types::chrono;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, InsertResult};
-use std::collections::{BTreeMap, HashMap};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait};
 use std::fmt;
 use std::string::String;
 use tui_input::backend::crossterm::EventHandler;
@@ -174,14 +169,11 @@ impl Default for Init {
 impl Init {
     fn toggle_tier(&mut self) {
         let selection = self.tier_state.selected();
-        match selection {
-            Some(s) => {
-                self.tier_list[s].selection = match self.tier_list[s].selection {
-                    Selection::Selected => Selection::NotSelected,
-                    Selection::NotSelected => Selection::Selected,
-                }
+        if let Some(s) = selection {
+            self.tier_list[s].selection = match self.tier_list[s].selection {
+                Selection::Selected => Selection::NotSelected,
+                Selection::NotSelected => Selection::Selected,
             }
-            None => {}
         }
     }
 
@@ -212,14 +204,11 @@ impl Init {
 
     fn toggle_trait(&mut self) {
         let selection = self.trait_state.selected();
-        match selection {
-            Some(s) => {
-                self.trait_list[s].selection = match self.trait_list[s].selection {
-                    Selection::Selected => Selection::NotSelected,
-                    Selection::NotSelected => Selection::Selected,
-                }
+        if let Some(s) = selection {
+            self.trait_list[s].selection = match self.trait_list[s].selection {
+                Selection::Selected => Selection::NotSelected,
+                Selection::NotSelected => Selection::Selected,
             }
-            None => {}
         }
     }
 
@@ -282,7 +271,7 @@ pub async fn run_init(
                             app.step = next(&app.step).unwrap();
                         }
                         Steps::Name => {
-                            if app.input.value() != "".to_string() {
+                            if app.input.value() != "" {
                                 let all_text = app.input.value();
                                 let mut split = all_text.split(",").collect::<Vec<&str>>();
                                 match split.len() {
@@ -305,7 +294,7 @@ pub async fn run_init(
                             }
                         }
                         Steps::Birthday => {
-                            if app.input.value() != "".to_string() {
+                            if app.input.value() != "" {
                                 let datestr = app.input.value();
                                 let parsed = parse_date_string(datestr, Local::now(), Dialect::Us);
                                 match parsed {
@@ -322,14 +311,14 @@ pub async fn run_init(
                             }
                         }
                         Steps::Place => {
-                            if app.input.value() != "".to_string() {
+                            if app.input.value() != "" {
                                 app.place = app.input.value().into();
                                 app.input.reset();
                                 app.step = next(&app.step).unwrap();
                             }
                         }
                         Steps::Of => {
-                            if app.input.value() != "".to_string() {
+                            if app.input.value() != "" {
                                 app.of_ppl = app
                                     .input
                                     .value()
@@ -389,7 +378,7 @@ pub async fn run_init(
                                         .iter()
                                         .map(|alias| traits::ActiveModel {
                                             id: Default::default(),
-                                            ppl_id: Set(pp.id.clone()),
+                                            ppl_id: Set(pp.id),
                                             key: Set("alias".to_string()),
                                             value: Set(alias.clone()),
                                             hidden: Set(false),
@@ -412,8 +401,8 @@ pub async fn run_init(
 
                                 let b = sig_date::ActiveModel {
                                     id: Default::default(),
-                                    ppl_id: Set(pp.id.clone()),
-                                    date: Set(app.bday.clone()),
+                                    ppl_id: Set(pp.id),
+                                    date: Set(app.bday),
                                     event: Set("birthday".to_string()),
                                     do_remind: Set(true),
                                     with_ppl: Default::default(),
@@ -433,7 +422,7 @@ pub async fn run_init(
                                 //
                                 let pl = contact::ActiveModel {
                                     id: Default::default(),
-                                    ppl_id: Set(pp.id.clone()),
+                                    ppl_id: Set(pp.id),
                                     r#type: Set("address".to_string()),
                                     designator: Default::default(),
                                     value: Set(app.place.clone()),
@@ -698,10 +687,7 @@ pub async fn run_init(
                             app.input.handle_event(&Event::Key(key_event));
                         }
                     },
-                    KeyCode::Tab => match &app.step {
-                        Steps::Tiers => app.toggle_tier_editing(),
-                        _ => {}
-                    },
+                    KeyCode::Tab => if app.step == Steps::Tiers { app.toggle_tier_editing() },
                     // app.input.handle_event(&Event::Key(key));
                     // KeyCode::Left => self.decrement_counter(),
                     // KeyCode::Right => self.increment_counter(),
@@ -771,7 +757,7 @@ fn render(f: &mut Frame, app: &mut Init) {
 
     let scroll = app.input.visual_scroll(width as usize);
 
-    let ival = app.input.value().clone();
+    let ival = app.input.value();
     let input = Paragraph::new(ival)
         .style(Style::default())
         // .style(match app.input_mode {
@@ -783,7 +769,7 @@ fn render(f: &mut Frame, app: &mut Init) {
 
     let mname: String = app.name.clone();
     let mnicks: String = app.aliases.join(", ");
-    let mbday = app.bday.clone();
+    let mbday = app.bday;
     let mplace = app.place.clone();
     let mut messages = vec![
         ("name".to_string(), mname),
