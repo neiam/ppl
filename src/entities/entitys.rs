@@ -3,15 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "sig_date")]
+#[sea_orm(table_name = "entitys")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub r#type: String,
     pub ppl_id: i32,
-    pub date: Date,
-    pub event: String,
-    pub do_remind: bool,
-    pub with_ppl: Option<Json>,
+    pub name: String,
+    pub date_acq: Date,
     pub date_ins: Date,
     pub date_up: Date,
 }

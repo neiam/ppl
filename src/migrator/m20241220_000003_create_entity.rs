@@ -16,20 +16,20 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Entity::Table)
+                    .table(Entitys::Table)
                     .col(
-                        ColumnDef::new(Entity::Id)
+                        ColumnDef::new(Entitys::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Entity::Type).string().not_null())
-                    .col(ColumnDef::new(Entity::PplId).integer().not_null())
-                    .col(ColumnDef::new(Entity::Name).string().not_null())
-                    .col(ColumnDef::new(Entity::DateAcq).date().not_null())
-                    .col(ColumnDef::new(Entity::DateIns).date().not_null())
-                    .col(ColumnDef::new(Entity::DateUp).date().not_null())
+                    .col(ColumnDef::new(Entitys::Type).string().not_null())
+                    .col(ColumnDef::new(Entitys::PplId).integer().not_null())
+                    .col(ColumnDef::new(Entitys::Name).string().not_null())
+                    .col(ColumnDef::new(Entitys::DateAcq).date().not_null())
+                    .col(ColumnDef::new(Entitys::DateIns).date().not_null())
+                    .col(ColumnDef::new(Entitys::DateUp).date().not_null())
                     .to_owned(),
             )
             .await?;
@@ -45,13 +45,13 @@ impl MigrationTrait for Migration {
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Entity::Table).to_owned())
+            .drop_table(Table::drop().table(Entitys::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub enum Entity {
+pub enum Entitys {
     // A house, a pet
     Table,
     Id,

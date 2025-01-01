@@ -9,7 +9,7 @@ pub struct Model {
     pub id: i32,
     pub ppl_id: i32,
     pub r#type: String,
-    pub designator: String,
+    pub designator: Option<String>,
     pub value: String,
     pub date_acq: Date,
     pub date_ins: Date,

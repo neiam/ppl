@@ -10,6 +10,7 @@ mod m20241220_000005_create_trait;
 mod m20241220_000006_create_relation;
 mod m20241220_000007_create_tier;
 mod m20241222_000008_create_traitsettings;
+mod m20241222_000009_create_tiersettings;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241220_000006_create_relation::Migration),
             Box::new(m20241220_000007_create_tier::Migration),
             Box::new(m20241222_000008_create_traitsettings::Migration),
+            Box::new(m20241222_000009_create_tiersettings::Migration),
         ]
     }
 }

@@ -1,19 +1,28 @@
-use crate::Commands::Tiers;
+use crate::entities::prelude::Ppl;
+use crate::entities::prelude::Traits;
+use crate::entities::prelude::{Entitys, TierDefaults, TraitDefaults};
+use crate::entities::sig_date::Model;
+use crate::entities::{
+    contact, entitys, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
+};
 use crate::PplError;
 use chrono::NaiveDate;
 use crossterm::event;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
-use dateparser::{parse, DateTimeUtc};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use enum_iterator::{all, cardinality, first, last, next, previous, reverse_all, Sequence};
 use interim::{parse_date_string, Dialect};
+use log::{info, warn};
 use ratatui::{
     prelude::*,
     style::{palette::tailwind::*, Color, Modifier, Style, Stylize},
     widgets::*,
     DefaultTerminal,
 };
-use sea_orm::sqlx::types::chrono;
+use sea_orm::prelude::Date;
 use sea_orm::sqlx::types::chrono::Local;
+use sea_orm::sqlx::types::{chrono, time};
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, InsertResult};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::string::String;
@@ -49,15 +58,17 @@ struct Init {
     /// Name
     name: String,
     /// Nicks
-    nicks: Vec<String>,
+    aliases: Vec<String>,
     /// bday
     bday: NaiveDate,
     /// bday-parse-error
     bday_parse: String,
-    /// bplace
-    birthplace: String,
+    /// c-place
+    place: String,
     /// of-parents
     of_ppl: Vec<String>,
+    /// with-ppl
+    with_ppl: Vec<String>,
     /// list state for the tier
     tier_state: ListState,
     /// tier storage
@@ -70,6 +81,8 @@ struct Init {
     trait_list: Vec<TraitSelect>,
     /// editing/not
     trait_editing: Selection,
+    /// debuy msgs
+    debugmsgs: Vec<(String, String)>,
 }
 
 impl Default for Init {
@@ -77,12 +90,13 @@ impl Default for Init {
         Init {
             step: Steps::Welcome,
             input: Input::default(),
-            nicks: Vec::<String>::default(),
+            aliases: Vec::<String>::default(),
             name: "".to_string(),
             bday: NaiveDate::default(),
             bday_parse: "".to_string(),
-            birthplace: "".to_string(),
+            place: "".to_string(),
             of_ppl: Vec::<String>::default(),
+            with_ppl: Vec::<String>::default(),
             tier_state: ListState::default(),
             tier_list: all::<DefaultTiers>()
                 .map(|e| TierSelect {
@@ -99,7 +113,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "🏷️".to_string(),
                     color: "VIOLET".to_string(),
-                    name: "Nickname".to_string(),
+                    name: "alias".to_string(),
                     is_date: false,
                     is_contact: false,
                 },
@@ -107,7 +121,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "🎂".to_string(),
                     color: "GOLD".to_string(),
-                    name: "Birthday".to_string(),
+                    name: "birthday".to_string(),
                     is_date: true,
                     is_contact: false,
                 },
@@ -115,7 +129,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "💒".to_string(),
                     color: "WHITE".to_string(),
-                    name: "Wedding".to_string(),
+                    name: "wedding".to_string(),
                     is_date: true,
                     is_contact: false,
                 },
@@ -123,7 +137,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "🤝".to_string(),
                     color: "PINK".to_string(),
-                    name: "Met".to_string(),
+                    name: "met".to_string(),
                     is_date: true,
                     is_contact: false,
                 },
@@ -131,7 +145,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "📞".to_string(),
                     color: "TEAL".to_string(),
-                    name: "Phone".to_string(),
+                    name: "phone".to_string(),
                     is_date: false,
                     is_contact: true,
                 },
@@ -139,7 +153,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "📬".to_string(),
                     color: "RED".to_string(),
-                    name: "Mailing".to_string(),
+                    name: "mailing".to_string(),
                     is_date: false,
                     is_contact: true,
                 },
@@ -147,11 +161,12 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "📧".to_string(),
                     color: "GREEN".to_string(),
-                    name: "eMail".to_string(),
+                    name: "email".to_string(),
                     is_date: false,
                     is_contact: true,
                 },
             ],
+            debugmsgs: vec![],
         }
     }
 }
@@ -224,8 +239,9 @@ enum Steps {
     Welcome,
     Name,
     Birthday,
-    Birthplace,
+    Place,
     Of,
+    With,
     Tiers,
     Traits,
     Review,
@@ -248,7 +264,10 @@ impl fmt::Display for DefaultTiers {
 
 fn handle_key_event(key_event: KeyEvent) {}
 
-pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
+pub async fn run_init(
+    mut terminal: DefaultTerminal,
+    db: DatabaseConnection,
+) -> Result<(), PplError> {
     let mut app = Init::default();
     loop {
         terminal.draw(|f| render(f, &mut app))?;
@@ -274,7 +293,7 @@ pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
                                         split.reverse();
                                         app.name = split.pop().unwrap().to_string();
                                         split.reverse();
-                                        app.nicks = split
+                                        app.aliases = split
                                             .iter()
                                             .map(|s| s.to_string())
                                             .collect::<Vec<String>>();
@@ -302,9 +321,9 @@ pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
                                 }
                             }
                         }
-                        Steps::Birthplace => {
+                        Steps::Place => {
                             if app.input.value() != "".to_string() {
-                                app.birthplace = app.input.value().into();
+                                app.place = app.input.value().into();
                                 app.input.reset();
                                 app.step = next(&app.step).unwrap();
                             }
@@ -322,6 +341,17 @@ pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
                                 app.step = next(&app.step).unwrap();
                             }
                         }
+                        Steps::With => {
+                            app.with_ppl = app
+                                .input
+                                .value()
+                                .to_string()
+                                .split(",")
+                                .map(|s| s.trim().to_string())
+                                .collect::<Vec<String>>();
+                            app.input.reset();
+                            app.step = next(&app.step).unwrap();
+                        }
                         Steps::Tiers => match app.tier_editing {
                             Selection::Selected => {
                                 app.tier_add(app.input.value().to_string());
@@ -336,7 +366,274 @@ pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
                             app.input.reset();
                             app.step = next(&app.step).unwrap();
                         }
-                        Steps::Review => {}
+                        Steps::Review => {
+                            if key_event.modifiers.contains(KeyModifiers::ALT) {
+                                // let rt = tokio::runtime::Builder::new_current_thread()
+                                //     .enable_all()
+                                //     .build()?;
+                                // Ppl::insert()
+                                app.debugmsgs.push(("---".to_string(), "---".to_string()));
+                                let p = ppl::ActiveModel {
+                                    id: Default::default(),
+                                    name: Set(app.name.clone()),
+                                    me: Set(true),
+                                    date_ins: Set(Local::today().naive_local()),
+                                    date_up: Set(Local::today().naive_local()),
+                                };
+                                let pp: ppl::Model = p.insert(&db).await?;
+                                app.debugmsgs.push(("ppid".to_string(), pp.id.to_string()));
+
+                                if !app.aliases.is_empty() {
+                                    let alias_am = app
+                                        .aliases
+                                        .iter()
+                                        .map(|alias| traits::ActiveModel {
+                                            id: Default::default(),
+                                            ppl_id: Set(pp.id.clone()),
+                                            key: Set("alias".to_string()),
+                                            value: Set(alias.clone()),
+                                            hidden: Set(false),
+                                            date_ins: Set(Local::today().naive_local()),
+                                            date_up: Set(Local::today().naive_local()),
+                                        })
+                                        .collect::<Vec<traits::ActiveModel>>();
+                                    let aliases = Traits::insert_many(alias_am).exec(&db).await;
+                                    match aliases {
+                                        Ok(res) => app.debugmsgs.push((
+                                            "alias-ok.".to_string(),
+                                            res.last_insert_id.to_string(),
+                                        )),
+                                        Err(err) => {
+                                            app.debugmsgs
+                                                .push(("alias-err".to_string(), err.to_string()));
+                                        }
+                                    }
+                                }
+
+                                let b = sig_date::ActiveModel {
+                                    id: Default::default(),
+                                    ppl_id: Set(pp.id.clone()),
+                                    date: Set(app.bday.clone()),
+                                    event: Set("birthday".to_string()),
+                                    do_remind: Set(true),
+                                    with_ppl: Default::default(),
+                                    date_ins: Set(Local::today().naive_local()),
+                                    date_up: Set(Local::today().naive_local()),
+                                };
+
+                                let bb = b.insert(&db).await;
+                                match bb {
+                                    Ok(res) => app
+                                        .debugmsgs
+                                        .push(("bd-ok.".to_string(), res.id.to_string())),
+                                    Err(err) => {
+                                        app.debugmsgs.push(("bd-err".to_string(), err.to_string()));
+                                    }
+                                }
+                                //
+                                let pl = contact::ActiveModel {
+                                    id: Default::default(),
+                                    ppl_id: Set(pp.id.clone()),
+                                    r#type: Set("address".to_string()),
+                                    designator: Default::default(),
+                                    value: Set(app.place.clone()),
+                                    date_acq: Set(Local::today().naive_local()),
+                                    date_ins: Set(Local::today().naive_local()),
+                                    date_up: Set(Local::today().naive_local()),
+                                };
+                                //
+                                let plpl = pl.insert(&db).await;
+                                match plpl {
+                                    Ok(res) => app
+                                        .debugmsgs
+                                        .push(("ct-ok.".to_string(), res.id.to_string())),
+                                    Err(err) => {
+                                        app.debugmsgs.push(("ct-err".to_string(), err.to_string()));
+                                    }
+                                }
+                                if !app.of_ppl.is_empty() {
+                                    for ofppl in &app.of_ppl {
+                                        let of = ppl::ActiveModel {
+                                            id: Default::default(),
+                                            name: Set(ofppl.clone()),
+                                            me: Set(false),
+                                            date_ins: Set(Local::today().naive_local()),
+                                            date_up: Set(Local::today().naive_local()),
+                                        };
+                                        let ofof = of.insert(&db).await;
+                                        match ofof {
+                                            Ok(res) => {
+                                                app.debugmsgs.push((
+                                                    "ofppl-ok.".to_string(),
+                                                    res.id.to_string(),
+                                                ));
+
+                                                let r = relation::ActiveModel {
+                                                    id: Default::default(),
+                                                    ppl_id_a: Set(pp.id),
+                                                    ppl_id_b: Set(res.id),
+                                                    r#type: Set("parent".to_string()),
+                                                    date_entered: Set(Option::from(app.bday)),
+                                                    date_ended: Default::default(),
+                                                    superseded: Set(false),
+                                                    date_ins: Set(Local::today().naive_local()),
+                                                    date_up: Set(Local::today().naive_local()),
+                                                };
+
+                                                let rr = r.insert(&db).await;
+                                                match rr {
+                                                    Ok(res) => app.debugmsgs.push((
+                                                        "ofppl-rel-ok.".to_string(),
+                                                        res.id.to_string(),
+                                                    )),
+                                                    Err(err) => {
+                                                        app.debugmsgs.push((
+                                                            "ofppl-rel-err".to_string(),
+                                                            err.to_string(),
+                                                        ));
+                                                    }
+                                                }
+                                            }
+                                            Err(err) => {
+                                                app.debugmsgs.push((
+                                                    "ofppl-err".to_string(),
+                                                    err.to_string(),
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if !app.with_ppl.is_empty() {
+                                    for ofppl in &app.with_ppl {
+                                        let of = ppl::ActiveModel {
+                                            id: Default::default(),
+                                            name: Set(ofppl.clone()),
+                                            me: Set(false),
+                                            date_ins: Set(Local::today().naive_local()),
+                                            date_up: Set(Local::today().naive_local()),
+                                        };
+                                        let ofof = of.insert(&db).await;
+                                        match ofof {
+                                            Ok(res) => {
+                                                app.debugmsgs.push((
+                                                    "wppl-ok.".to_string(),
+                                                    res.id.to_string(),
+                                                ));
+
+                                                let r = relation::ActiveModel {
+                                                    id: Default::default(),
+                                                    ppl_id_a: Set(pp.id),
+                                                    ppl_id_b: Set(res.id),
+                                                    r#type: Set("sibling".to_string()),
+                                                    date_entered: Set(None),
+                                                    date_ended: Default::default(),
+                                                    superseded: Set(false),
+                                                    date_ins: Set(Local::today().naive_local()),
+                                                    date_up: Set(Local::today().naive_local()),
+                                                };
+
+                                                let rr = r.insert(&db).await;
+                                                match rr {
+                                                    Ok(res) => app.debugmsgs.push((
+                                                        "wppl-rel-ok.".to_string(),
+                                                        res.id.to_string(),
+                                                    )),
+                                                    Err(err) => {
+                                                        app.debugmsgs.push((
+                                                            "wppl-rel-err".to_string(),
+                                                            err.to_string(),
+                                                        ));
+                                                    }
+                                                }
+                                            }
+                                            Err(err) => {
+                                                app.debugmsgs.push((
+                                                    "wppl-err".to_string(),
+                                                    err.to_string(),
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+
+                                //
+                                if !app.tier_list.is_empty() {
+                                    let tier_am = app
+                                        .tier_list
+                                        .iter()
+                                        .filter(|t| t.selection == Selection::Selected)
+                                        .map(|tier| tier_defaults::ActiveModel {
+                                            id: Default::default(),
+                                            key: Set(tier.name.clone()),
+                                            default: Set(true),
+                                            enabled: Set(true),
+                                            color: Default::default(),
+                                            symbol: Default::default(),
+                                            date_ins: Set(Local::today().naive_local()),
+                                            date_up: Set(Local::today().naive_local()),
+                                        })
+                                        .collect::<Vec<tier_defaults::ActiveModel>>();
+
+                                    let tttt = TierDefaults::insert_many(tier_am).exec(&db).await;
+                                    match tttt {
+                                        Ok(res) => app.debugmsgs.push((
+                                            "tl-ok.".to_string(),
+                                            res.last_insert_id.to_string(),
+                                        )),
+                                        Err(err) => {
+                                            app.debugmsgs
+                                                .push(("tl-err".to_string(), err.to_string()));
+                                        }
+                                    }
+                                }
+
+                                if !app.trait_list.is_empty() {
+                                    let trait_am = app.trait_list.iter().map(|dtrait|
+                                            trait_defaults::ActiveModel {
+                                                id: Default::default(),
+                                                key: Set(dtrait.name.clone()),
+                                                default: Set(true),
+                                                enabled: Set(true),
+                                                is_date: Set(dtrait.is_date),
+                                                is_contact: Set(dtrait.is_contact),
+                                                color: Set(dtrait.color.clone()),
+                                                symbol: Set(dtrait.symbol.clone()),
+                                                date_ins: Set(Local::today().naive_local()),
+                                                date_up: Set(Local::today().naive_local()),
+                                            }).collect::<Vec<trait_defaults::ActiveModel>>();
+
+                                    let trtr = TraitDefaults::insert_many(trait_am).exec(&db).await;
+                                    match trtr {
+                                        Ok(res) => app.debugmsgs.push((
+                                            "tr-ok.".to_string(),
+                                            res.last_insert_id.to_string(),
+                                        )),
+                                        Err(err) => {
+                                            app.debugmsgs
+                                                .push(("tr-err".to_string(), err.to_string()));
+                                        }
+                                    }
+                                }
+                                //
+                                // for dtrait in &app.trait_list {
+                                //     let trt = trait_default::ActiveModel {
+                                //         id: Default::default(),
+                                //         key: Set(dtrait.name.clone()),
+                                //         default: Set(true),
+                                //         enabled: Set(true),
+                                //         is_date: Set(dtrait.is_date),
+                                //         is_contact: Set(dtrait.is_contact),
+                                //         color: Set(dtrait.color.clone()),
+                                //         symbol: Set(dtrait.symbol.clone()),
+                                //         date_ins: Set(Local::today().naive_local()),
+                                //         date_up: Set(Local::today().naive_local()),
+                                //     };
+                                //
+                                //     let trttrt: trait_default::Model = trt.insert(&db).await?;
+                                // }
+                            }
+                        }
                     },
                     KeyCode::Backspace => {
                         if app.input.value() == "" {
@@ -347,22 +644,27 @@ pub fn run_init(mut terminal: DefaultTerminal) -> Result<(), PplError> {
                                 }
                                 Steps::Birthday => {
                                     app.name = "".to_string();
-                                    app.nicks = vec![];
+                                    app.aliases = vec![];
                                     app.input.reset();
                                     app.step = previous(&app.step).unwrap();
                                 }
-                                Steps::Birthplace => {
+                                Steps::Place => {
                                     app.bday = NaiveDate::default();
                                     app.input.reset();
                                     app.step = previous(&app.step).unwrap();
                                 }
                                 Steps::Of => {
-                                    app.birthplace = "".to_string();
+                                    app.place = "".to_string();
+                                    app.input.reset();
+                                    app.step = previous(&app.step).unwrap();
+                                }
+                                Steps::With => {
+                                    app.of_ppl = vec![];
                                     app.input.reset();
                                     app.step = previous(&app.step).unwrap();
                                 }
                                 Steps::Tiers => {
-                                    app.of_ppl = vec![];
+                                    app.with_ppl = vec![];
                                     app.input.reset();
                                     app.step = previous(&app.step).unwrap();
                                 }
@@ -480,67 +782,77 @@ fn render(f: &mut Frame, app: &mut Init) {
         .block(Block::default().borders(Borders::ALL).title("Input"));
 
     let mname: String = app.name.clone();
-    let mnicks: String = app.nicks.join(", ");
+    let mnicks: String = app.aliases.join(", ");
     let mbday = app.bday.clone();
-    let mplace = app.birthplace.clone();
+    let mplace = app.place.clone();
     let mut messages = vec![
-        ("name", mname),
-        ("nicks", mnicks),
-        ("bday", mbday.to_string()),
-        ("place", mplace),
+        ("name".to_string(), mname),
+        ("nicks".to_string(), mnicks),
+        ("bday".to_string(), mbday.to_string()),
+        ("place".to_string(), mplace),
     ];
 
+    // display elements
+    let oflist = &app
+        .of_ppl
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let withlist = &app
+        .with_ppl
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let tierlist = &app
+        .tier_list
+        .iter()
+        .filter(|t| t.selection == Selection::Selected)
+        .map(|t| t.name.as_str())
+        .collect::<Vec<_>>()
+        .join(",");
+    let traitlist = &app
+        .trait_list
+        .iter()
+        .filter(|t| t.selection == Selection::Selected)
+        .map(|t| t.name.as_str())
+        .collect::<Vec<_>>()
+        .join(",");
     match app.step {
         Steps::Welcome => {}
         Steps::Name => {}
         Steps::Birthday => {}
-        Steps::Birthplace => {}
+        Steps::Place => {}
         Steps::Of => {}
+        Steps::With => {
+            messages.push(("of".to_string(), oflist.clone()));
+        }
         Steps::Tiers => {
-            let oflist = &app.of_ppl.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(",");;
-            messages.push(("of", oflist.clone()))
+            messages.push(("of".to_string(), oflist.clone()));
+            messages.push(("with".to_string(), withlist.clone()));
         }
         Steps::Traits => {
-            let oflist = &app.of_ppl.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(",");;
-            messages.push(("of", oflist.clone()));
-            let tierlist = &app
-                .tier_list
-                .iter()
-                .filter(|t| t.selection == Selection::Selected)
-                .map(|t| t.name.as_str())
-                .collect::<Vec<_>>()
-                .join(",");
-            messages.push(("circles", tierlist.clone()))
+            messages.push(("of".to_string(), oflist.clone()));
+            messages.push(("with".to_string(), withlist.clone()));
+            messages.push(("circles".to_string(), tierlist.clone()))
         }
         Steps::Review => {
-            let oflist = &app.of_ppl.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(",");;
-            messages.push(("of", oflist.clone()));
-            let tierlist = &app
-                .tier_list
-                .iter()
-                .filter(|t| t.selection == Selection::Selected)
-                .map(|t| t.name.as_str())
-                .collect::<Vec<_>>()
-                .join(",");
-            messages.push(("circles", tierlist.clone()));
-            let traitlist = &app
-                .trait_list
-                .iter()
-                .filter(|t| t.selection == Selection::Selected)
-                .map(|t| t.name.as_str())
-                .collect::<Vec<_>>()
-                .join(",");
-            messages.push(("traits", traitlist.clone()))
+            messages.push(("of".to_string(), oflist.clone()));
+            messages.push(("with".to_string(), withlist.clone()));
+            messages.push(("circles".to_string(), tierlist.clone()));
+            messages.push(("traits".to_string(), traitlist.clone()))
         }
     }
 
+    messages.extend(app.debugmsgs.clone());
     let messages_v: Vec<ListItem> = messages
         .iter()
         .filter(|(t, i)| **i != "".to_string())
         .enumerate()
         .map(|(i, (t, m))| {
             let content = vec![Line::from(vec![
-                Span::styled(*t, Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(t, Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(format!(": {}", m)),
             ])];
             ListItem::new(content)
@@ -608,10 +920,10 @@ fn render(f: &mut Frame, app: &mut Init) {
             f.render_widget(input, chunks[3]);
             f.render_widget(messages, chunks[4]);
         }
-        Steps::Birthplace => {
+        Steps::Place => {
             f.render_widget(
                 Span::styled(
-                    "> born where?",
+                    "> where are you at?",
                     Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
                 ),
                 chunks[2],
@@ -623,6 +935,17 @@ fn render(f: &mut Frame, app: &mut Init) {
             f.render_widget(
                 Span::styled(
                     "> born of? (comma seperated)",
+                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                ),
+                chunks[2],
+            );
+            f.render_widget(input, chunks[3]);
+            f.render_widget(messages, chunks[4]);
+        }
+        Steps::With => {
+            f.render_widget(
+                Span::styled(
+                    "> born with? (comma seperated, optional)",
                     Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
                 ),
                 chunks[2],

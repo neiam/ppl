@@ -1,5 +1,5 @@
 use crate::migrator::m20241219_000001_create_ppl::Ppl;
-use crate::migrator::m20241220_000003_create_entity::Entity;
+use crate::migrator::m20241220_000003_create_entity::Entitys;
 use sea_orm_migration::prelude::*;
 
 pub struct Migration;
@@ -54,12 +54,12 @@ impl MigrationTrait for Migration {
 
 #[derive(DeriveIden)]
 pub enum Contact {
-    // phones / emails
+    // phones / emails / mailing
     Table,
     Id,
     PplId,
     Type,
-    Designator,
+    Designator, // todo remember what this was for
     Value,
     DateAcq,
 

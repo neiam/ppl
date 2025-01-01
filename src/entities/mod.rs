@@ -3,9 +3,11 @@
 pub mod prelude;
 
 pub mod contact;
-pub mod entity;
+pub mod entitys;
 pub mod ppl;
 pub mod relation;
 pub mod sig_date;
 pub mod tier;
-pub mod r#trait;
+pub mod tier_defaults;
+pub mod trait_defaults;
+pub mod traits;

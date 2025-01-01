@@ -8,7 +8,7 @@ pub async fn check_migrations(db: &DatabaseConnection) -> Result<(), PplError> {
 
     // let be = db.get_database_backend();
     // let schema_manager = SchemaManager::new(db);
-    Migrator::refresh(db).await?;
-    info!("migrations run");
+    // Migrator::refresh(db).await?;
+    Migrator::up(db, None).await?;
     Ok(())
 }

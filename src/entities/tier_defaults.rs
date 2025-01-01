@@ -3,13 +3,15 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "trait")]
+#[sea_orm(table_name = "tier_defaults")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub ppl_id: i32,
     pub key: String,
-    pub value: String,
+    pub default: bool,
+    pub enabled: bool,
+    pub color: Option<String>,
+    pub symbol: Option<String>,
     pub date_ins: Date,
     pub date_up: Date,
 }

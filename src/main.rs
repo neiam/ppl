@@ -18,9 +18,12 @@ mod migrator;
 mod db;
 mod do_init;
 
-use crate::entities::ppl::Model;
+use crate::entities::ppl::Model as PplModel;
+use crate::entities::tier_defaults::Model as TiDModel;
+use crate::entities::trait_defaults::Model as TrDModel;
 use crate::migrator::Migrator;
 use entities::{prelude::*, *};
+use crate::entities::ppl::Column::Me;
 
 #[derive(Debug)]
 enum PplError {
@@ -61,16 +64,20 @@ enum Commands {
     Init,
     /// TUI
     Tui,
+    /// Calendar of upcoming events
+    Calendar,
     /// Show MOTD Version
     MOTD,
     /// Add ppl
-    Add,
+    Add { name: String },
     /// Edit ppl
     Edit { name: Option<String> },
     /// Show ppl
     Show,
     /// Tiers
     Tiers,
+    ///
+    Traits,
     /// Stats
     Stats,
 }
@@ -80,19 +87,28 @@ const DATABASE_URL: &str = "sqlite://database.sqlite?mode=rwc";
 #[tokio::main]
 async fn main() -> Result<(), PplError> {
     env_logger::init();
+    // color_eyre::install()?;
     let db = Database::connect(DATABASE_URL).await?;
     db::check_migrations(&db).await?;
 
-
-
     let cli = Cli::parse();
+
+    let is_init = match Ppl::find()
+        .filter(Me.eq(true))
+        .one(&db)
+        .await?
+    {
+        None => {
+            false
+        }
+        Some(_) => {
+            true
+        }
+    };
+
     match &cli.command {
         Some(Commands::Edit { name }) => {
             println!("'edit: {:?}", name)
-        }
-        Some(Commands::Show {}) => {
-            println!("showing but selected");
-            // show().expect("failed2draw")
         }
         None => {
             println!("Showing PPL");
@@ -100,29 +116,75 @@ async fn main() -> Result<(), PplError> {
         }
         Some(Commands::MOTD { .. }) => {}
         Some(Commands::Init { .. }) => {
-            match Ppl::find()
-                .filter(ppl::Column::Me.eq(true))
-                .one(&db)
-                .await?
+            match is_init
             {
-                None => {
+                false => {
                     info!("Uninitialized");
                     color_eyre::install()?;
                     let terminal = ratatui::init();
-                    let result = do_init::run_init(terminal);
+                    let result = do_init::run_init(terminal, db).await;
                     ratatui::restore();
                     result;
                     info!("Init complete");
                 }
-                Some(_) => {
+                true => {
                     info!("ppl has been initialized already");
                 }
             }
         }
         Some(Commands::Add { .. }) => {}
         Some(Commands::Tui) => {}
-        Some(Commands::Tiers) => {}
-        Some(Commands::Stats) => {}
+        Some(Commands::Calendar) => {}
+        Some(Commands::Show {}) => {
+            match is_init {
+                true => {
+                    let ppl = Ppl::find().all(&db).await?;
+                    for p in ppl {
+                        println!("{:?}", p)
+                    }
+                }
+                false => {
+                    info!("pls run init");
+                }
+            }
+        }
+        Some(Commands::Tiers) => {
+            match is_init {
+                true => {
+                    let tiers = TierDefaults::find().all(&db).await?;
+                    for t in tiers {
+                        println!("{:?}", t)
+                    }
+                }
+                false => {
+                    info!("pls run init");
+                }
+            }
+        }
+        Some(Commands::Traits) => {
+            match is_init {
+                true => {
+                    let traits = TraitDefaults::find().all(&db).await?;
+                    for t in traits {
+                        println!("{:?}", t)
+                    }
+                }
+                false => {
+                    info!("pls run init");
+                }
+            }
+        }
+        Some(Commands::Stats) => {
+            match is_init {
+                true => {
+                    let cnt = Ppl::find().all(&db).await?.len();
+                    println!("{:?} ppl", cnt)
+                }
+                false => {
+                    info!("pls run init");
+                }
+            }
+        }
     }
     Ok(())
 }

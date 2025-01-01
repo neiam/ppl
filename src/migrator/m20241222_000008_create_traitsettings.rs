@@ -1,5 +1,3 @@
-use crate::migrator::m20241219_000001_create_ppl::Ppl;
-use crate::migrator::m20241220_000004_create_sig_date::SigDate;
 use sea_orm::sea_query::{ColumnDef, Table};
 use sea_orm::{sea_query, DbErr, DeriveIden, ForeignKeyAction};
 use sea_orm_migration::{MigrationName, MigrationTrait, SchemaManager};
@@ -18,23 +16,23 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(TraitDefault::Table)
+                    .table(TraitDefaults::Table)
                     .col(
-                        ColumnDef::new(TraitDefault::Id)
+                        ColumnDef::new(TraitDefaults::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(TraitDefault::Key).string().not_null())
-                    .col(ColumnDef::new(TraitDefault::Default).boolean().not_null())
-                    .col(ColumnDef::new(TraitDefault::Enabled).boolean().not_null())
-                    .col(ColumnDef::new(TraitDefault::IsDate).boolean().not_null())
-                    .col(ColumnDef::new(TraitDefault::IsContact).boolean().not_null())
-                    .col(ColumnDef::new(TraitDefault::Color).string().not_null())
-                    .col(ColumnDef::new(TraitDefault::Symbol).string().not_null())
-                    .col(ColumnDef::new(TraitDefault::DateIns).date().not_null())
-                    .col(ColumnDef::new(TraitDefault::DateUp).date().not_null())
+                    .col(ColumnDef::new(TraitDefaults::Key).string().not_null())
+                    .col(ColumnDef::new(TraitDefaults::Default).boolean().not_null())
+                    .col(ColumnDef::new(TraitDefaults::Enabled).boolean().not_null())
+                    .col(ColumnDef::new(TraitDefaults::IsDate).boolean().not_null())
+                    .col(ColumnDef::new(TraitDefaults::IsContact).boolean().not_null())
+                    .col(ColumnDef::new(TraitDefaults::Color).string().not_null())
+                    .col(ColumnDef::new(TraitDefaults::Symbol).string().not_null())
+                    .col(ColumnDef::new(TraitDefaults::DateIns).date().not_null())
+                    .col(ColumnDef::new(TraitDefaults::DateUp).date().not_null())
                     .to_owned(),
             )
             .await?;
@@ -52,13 +50,13 @@ impl MigrationTrait for Migration {
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(TraitDefault::Table).to_owned())
+            .drop_table(Table::drop().table(TraitDefaults::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub enum TraitDefault {
+pub enum TraitDefaults {
     Table,
     Id,
     Key,
