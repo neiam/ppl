@@ -1,19 +1,14 @@
 use crate::data::{ContactOps, PplOps, RelationOps, SigDateOps, TierOps, TraitOps};
 use crate::entities::ppl::Column::Me;
 use crate::entities::prelude::Ppl;
-use crate::entities::tier;
-use crate::entities::tier::Model;
-use crate::entities::{contact, ppl};
 use crate::PplError;
 use chrono::Local;
 use clap::Parser;
 use color_eyre::owo_colors::OwoColorize;
-use interim::datetime::Date;
 use interim::{parse_date_string, Dialect};
 use log::warn;
-use sea_orm::ActiveValue::Set;
 use sea_orm::ColumnTrait;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter};
 use tracing::info;
 
 // RUST_LOG=warn cargo run -- add Anjali Budday "+1 5088089658" avenkatesh.wpi@gmail.com 1993-08-28 2018-12-20 Wife 2012-01-01 WPI
@@ -43,14 +38,14 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
 
     match &args.tier {
         None => Ok(()),
-        Some(tier) => TierOps::create(&db, pp.id.clone(), tier.clone()).await,
+        Some(tier) => TierOps::create(&db, pp.id, tier.clone()).await,
     }?;
     match &args.phone {
         None => Ok(()),
         Some(phone) => {
             ContactOps::create(
                 &db,
-                pp.id.clone(),
+                pp.id,
                 "phone".to_string(),
                 "primary".to_string(),
                 phone.to_string(),
@@ -63,7 +58,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
         Some(phone) => {
             ContactOps::create(
                 &db,
-                pp.id.clone(),
+                pp.id,
                 "email".to_string(),
                 "primary".to_string(),
                 phone.to_string(),
@@ -79,7 +74,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
                 Ok(parsed) => {
                     SigDateOps::create(
                         &db,
-                        pp.id.clone(),
+                        pp.id,
                         parsed.date_naive(),
                         "birthday".to_string(),
                         true,
@@ -102,7 +97,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
                 Ok(parsed) => {
                     SigDateOps::create(
                         &db,
-                        pp.id.clone(),
+                        pp.id,
                         parsed.date_naive(),
                         "wedding".to_string(),
                         false,
@@ -122,8 +117,8 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
         Some(relation) => {
             RelationOps::create(
                 &db,
-                me.id.clone(),
-                pp.id.clone(),
+                me.id,
+                pp.id,
                 relation.to_owned(),
                 false,
                 None,
@@ -141,7 +136,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
                 Ok(parsed) => {
                     SigDateOps::create(
                         &db,
-                        pp.id.clone(),
+                        pp.id,
                         parsed.date_naive(),
                         "met".to_string(),
                         false,
@@ -161,7 +156,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
         Some(from) => {
             TraitOps::create(
                 &db,
-                pp.id.clone(),
+                pp.id,
                 "from".to_string(),
                 from.to_string(),
                 false,
@@ -175,7 +170,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
         Some(addr) => {
             ContactOps::create(
                 &db,
-                pp.id.clone(),
+                pp.id,
                 "address".to_string(),
                 "primary".to_string(),
                 addr.to_string(),

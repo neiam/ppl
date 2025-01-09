@@ -2,25 +2,22 @@ use crate::data::{
     ContactOps, PplOps, RelationOps, SigDateOps, TierDefaultOps, TierOps, TraitDefaultOps, TraitOps,
 };
 use crate::entities::ppl::Model;
-use crate::entities::prelude::{Ppl, TierDefaults, TraitDefaults};
 use crate::entities::{
     contact, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
 };
 use crate::PplError;
-use chrono::NaiveDate;
 use color_eyre::owo_colors::OwoColorize;
 use crossterm::event;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 use enum_iterator::{next, Sequence};
 use ratatui::prelude::{Constraint, Direction, Layout, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::style::palette::material::AMBER;
-use ratatui::style::palette::tailwind::{GREEN, ORANGE, SLATE, WHITE};
+use ratatui::style::palette::tailwind::{ORANGE, SLATE, WHITE};
 use ratatui::style::{Color, Styled};
-use ratatui::widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use sea_orm::DatabaseConnection;
 use std::ops::Index;
-use tokio::task::id;
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
 
@@ -179,79 +176,68 @@ pub async fn run_tui(
                     },
                     KeyCode::Tab => match app.ppl_field_editing {
                         true => {
-                            app.ppl_field_idx = app.ppl_field_idx + 1;
+                            app.ppl_field_idx += 1;
                         }
                         false => {
-                            app.current_tab = next(&app.current_tab).unwrap_or_else(|| Tabs::Ppl)
+                            app.current_tab = next(&app.current_tab).unwrap_or(Tabs::Ppl)
                         }
                     },
                     KeyCode::Esc => break Ok(()),
-                    KeyCode::Char('e') => match app.current_tab {
-                        Tabs::Ppl => match app.ppl_field_editing {
-                            true => {
-                                default_editing_handler(&mut app, &key_event);
-                            }
-                            false => {
-                                app.ppl_editing = !app.ppl_editing;
-                            }
-                        },
-                        _ => {}
-                    },
+                    KeyCode::Char('e') => if app.current_tab == Tabs::Ppl { match app.ppl_field_editing {
+                        true => {
+                            default_editing_handler(&mut app, &key_event);
+                        }
+                        false => {
+                            app.ppl_editing = !app.ppl_editing;
+                        }
+                    } },
                     KeyCode::Char('f') => {
                         default_editing_handler(&mut app, &key_event);
                     }
-                    KeyCode::Enter => match app.current_tab {
-                        Tabs::Ppl => match app.ppl_editing {
-                            true => {
-                                if app.ppl_detail_state.selected().is_some() {
-                                    let idx = &app.ppl_detail_state.selected().unwrap();
-                                    let e = app.ppl_editables.get(*idx).unwrap();
-                                    if !app.ppl_field_editing {
-                                        // let k
-                                        app.ppl_input_a = e.first.clone().into();
-                                        app.ppl_input_b =
-                                            e.second.clone().unwrap_or("".to_string()).into();
-                                        app.ppl_input_c =
-                                            e.third.clone().unwrap_or("".to_string()).into();
-                                    } else {
-                                        let new_editable = Editable {
-                                            tgt: e.tgt.clone(),
-                                            id: e.id,
-                                            first: app.ppl_input_a.value().parse().unwrap(),
-                                            second: Option::from(
-                                                app.ppl_input_b.value().to_string(),
-                                            ),
-                                            third: Option::from(
-                                                app.ppl_input_c.value().to_string(),
-                                            ),
-                                        };
+                    KeyCode::Enter => if app.current_tab == Tabs::Ppl { if app.ppl_editing && app.ppl_detail_state.selected().is_some() {
+                        let idx = &app.ppl_detail_state.selected().unwrap();
+                        let e = app.ppl_editables.get(*idx).unwrap();
+                        if !app.ppl_field_editing {
+                            // let k
+                            app.ppl_input_a = e.first.clone().into();
+                            app.ppl_input_b =
+                                e.second.clone().unwrap_or("".to_string()).into();
+                            app.ppl_input_c =
+                                e.third.clone().unwrap_or("".to_string()).into();
+                        } else {
+                            let new_editable = Editable {
+                                tgt: e.tgt.clone(),
+                                id: e.id,
+                                first: app.ppl_input_a.value().parse().unwrap(),
+                                second: Option::from(
+                                    app.ppl_input_b.value().to_string(),
+                                ),
+                                third: Option::from(
+                                    app.ppl_input_c.value().to_string(),
+                                ),
+                            };
 
-                                        match e.tgt {
-                                            Editablez::Trait => {
-                                                TraitOps::updatee(&db, new_editable).await;
-                                            }
-                                            Editablez::Tier => {
-                                                TierOps::updatee(&db, new_editable).await;
-                                            }
-                                            Editablez::Contact => {
-                                                ContactOps::updatee(&db, new_editable).await;
-                                            }
-                                            Editablez::Relation => {
-                                                RelationOps::updatee(&db, new_editable).await;
-                                            }
-                                            Editablez::SigDate => {
-                                                SigDateOps::updatee(&db, new_editable).await;
-                                            }
-                                        };
-                                        app.reload(&db).await?;
-                                    }
-                                    app.ppl_field_editing = !app.ppl_field_editing;
+                            match e.tgt {
+                                Editablez::Trait => {
+                                    TraitOps::updatee(&db, new_editable).await;
                                 }
-                            }
-                            false => {}
-                        },
-                        _ => {}
-                    },
+                                Editablez::Tier => {
+                                    TierOps::updatee(&db, new_editable).await;
+                                }
+                                Editablez::Contact => {
+                                    ContactOps::updatee(&db, new_editable).await;
+                                }
+                                Editablez::Relation => {
+                                    RelationOps::updatee(&db, new_editable).await;
+                                }
+                                Editablez::SigDate => {
+                                    SigDateOps::updatee(&db, new_editable).await;
+                                }
+                            };
+                            app.reload(&db).await?;
+                        }
+                        app.ppl_field_editing = !app.ppl_field_editing;
+                    } },
                     _ => {
                         default_editing_handler(&mut app, &key_event);
                     }
@@ -264,74 +250,69 @@ pub async fn run_tui(
 }
 
 fn default_editing_handler(app: &mut Tui, key_event: &KeyEvent) {
-    match app.ppl_editing {
-        true => {
-            let idx = &app.ppl_detail_state.selected().unwrap();
-            let e = app.ppl_editables.get(*idx).unwrap();
-            match e.tgt {
-                Editablez::Trait => match app.ppl_field_idx % 2 {
-                    0 => {
-                        app.ppl_input_a.handle_event(&Event::Key(*key_event));
-                    }
-                    1 => {
-                        app.ppl_input_b.handle_event(&Event::Key(*key_event));
-                    }
-                    _ => {}
-                },
-                Editablez::Tier => match app.ppl_field_idx % 3 {
-                    0 => {
-                        app.ppl_input_a.handle_event(&Event::Key(*key_event));
-                    }
-                    1 => {
-                        app.ppl_input_b.handle_event(&Event::Key(*key_event));
-                    }
-                    2 => {
-                        app.ppl_input_c.handle_event(&Event::Key(*key_event));
-                    }
-                    _ => {}
-                },
-                Editablez::Contact => match app.ppl_field_idx % 3 {
-                    0 => {
-                        app.ppl_input_a.handle_event(&Event::Key(*key_event));
-                    }
-                    1 => {
-                        app.ppl_input_b.handle_event(&Event::Key(*key_event));
-                    }
-                    2 => {
-                        app.ppl_input_c.handle_event(&Event::Key(*key_event));
-                    }
-                    _ => {}
-                },
-                Editablez::Relation => match app.ppl_field_idx % 3 {
-                    0 => {
-                        app.ppl_input_a.handle_event(&Event::Key(*key_event));
-                    }
-                    1 => {
-                        app.ppl_input_b.handle_event(&Event::Key(*key_event));
-                    }
-                    2 => {
-                        app.ppl_input_c.handle_event(&Event::Key(*key_event));
-                    }
-                    _ => {}
-                },
-                Editablez::SigDate => match app.ppl_field_idx % 3 {
-                    0 => {
-                        app.ppl_input_a.handle_event(&Event::Key(*key_event));
-                    }
-                    1 => {
-                        app.ppl_input_b.handle_event(&Event::Key(*key_event));
-                    }
-                    2 => {
-                        app.ppl_input_c.handle_event(&Event::Key(*key_event));
-                    }
-                    _ => {}
-                },
-            }
-            match app.ppl_field_idx {
+    if app.ppl_editing {
+        let idx = &app.ppl_detail_state.selected().unwrap();
+        let e = app.ppl_editables.get(*idx).unwrap();
+        match e.tgt {
+            Editablez::Trait => match app.ppl_field_idx % 2 {
+                0 => {
+                    app.ppl_input_a.handle_event(&Event::Key(*key_event));
+                }
+                1 => {
+                    app.ppl_input_b.handle_event(&Event::Key(*key_event));
+                }
                 _ => {}
-            }
+            },
+            Editablez::Tier => match app.ppl_field_idx % 3 {
+                0 => {
+                    app.ppl_input_a.handle_event(&Event::Key(*key_event));
+                }
+                1 => {
+                    app.ppl_input_b.handle_event(&Event::Key(*key_event));
+                }
+                2 => {
+                    app.ppl_input_c.handle_event(&Event::Key(*key_event));
+                }
+                _ => {}
+            },
+            Editablez::Contact => match app.ppl_field_idx % 3 {
+                0 => {
+                    app.ppl_input_a.handle_event(&Event::Key(*key_event));
+                }
+                1 => {
+                    app.ppl_input_b.handle_event(&Event::Key(*key_event));
+                }
+                2 => {
+                    app.ppl_input_c.handle_event(&Event::Key(*key_event));
+                }
+                _ => {}
+            },
+            Editablez::Relation => match app.ppl_field_idx % 3 {
+                0 => {
+                    app.ppl_input_a.handle_event(&Event::Key(*key_event));
+                }
+                1 => {
+                    app.ppl_input_b.handle_event(&Event::Key(*key_event));
+                }
+                2 => {
+                    app.ppl_input_c.handle_event(&Event::Key(*key_event));
+                }
+                _ => {}
+            },
+            Editablez::SigDate => match app.ppl_field_idx % 3 {
+                0 => {
+                    app.ppl_input_a.handle_event(&Event::Key(*key_event));
+                }
+                1 => {
+                    app.ppl_input_b.handle_event(&Event::Key(*key_event));
+                }
+                2 => {
+                    app.ppl_input_c.handle_event(&Event::Key(*key_event));
+                }
+                _ => {}
+            },
         }
-        false => {}
+        {}
     }
 }
 
@@ -407,12 +388,12 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     let trait_defaults = app
                         .def_trait_list
                         .iter()
-                        .filter(|t| t.is_date == false && t.is_contact == false)
+                        .filter(|t| !t.is_date && !t.is_contact)
                         .collect::<Vec<&trait_defaults::Model>>();
                     for t in &curr_traits {
                         editables.push(Editable {
                             tgt: Editablez::Trait,
-                            id: t.id.clone(),
+                            id: t.id,
                             first: t.key.clone(),
                             second: Option::from(t.value.clone()),
                             third: t.hidden.clone().to_string().into(),
@@ -445,11 +426,11 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     for t in &curr_tiers {
                         let othersym = app.def_tier_list.iter().find(|dt| dt.key == t.name);
                         editables.push(Editable {
-                            id: t.id.clone(),
+                            id: t.id,
                             tgt: Editablez::Tier,
                             first: t.name.clone(),
-                            second: Option::from(t.color.clone()),
-                            third: Option::from(t.symbol.clone()),
+                            second: t.color.clone(),
+                            third: t.symbol.clone(),
                         });
                         match (&t.symbol, othersym) {
                             (None, Some(other)) => msgs.push(Line::from(vec![
@@ -495,16 +476,10 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .map(|t| t.to_owned())
                         .collect::<Vec<relation::Model>>();
                     for t in &curr_rels {
-                        let i2 = match t.date_entered {
-                            None => None,
-                            Some(d) => Some(d.to_string()),
-                        };
-                        let i3 = match t.date_ended {
-                            None => None,
-                            Some(d) => Some(d.to_string()),
-                        };
+                        let i2 = t.date_entered.map(|d| d.to_string());
+                        let i3 = t.date_ended.map(|d| d.to_string());
                         editables.push(Editable {
-                            id: t.id.clone(),
+                            id: t.id,
                             tgt: Editablez::Relation,
                             first: t.r#type.clone(),
                             second: i2,
@@ -529,11 +504,11 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     let date_traits = app
                         .def_trait_list
                         .iter()
-                        .filter(|t| t.is_date == true && t.enabled == true)
+                        .filter(|t| t.is_date && t.enabled)
                         .collect::<Vec<&trait_defaults::Model>>();
                     for t in &curr_dates {
                         editables.push(Editable {
-                            id: t.id.clone(),
+                            id: t.id,
                             tgt: Editablez::SigDate,
                             first: t.event.clone(),
                             second: Option::from(t.date.to_string()),
@@ -573,11 +548,11 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     let contact_traits = app
                         .def_trait_list
                         .iter()
-                        .filter(|t| t.is_contact == true && t.enabled == true)
+                        .filter(|t| t.is_contact && t.enabled)
                         .collect::<Vec<&trait_defaults::Model>>();
                     for t in &contacts {
                         editables.push(Editable {
-                            id: t.id.clone(),
+                            id: t.id,
                             tgt: Editablez::Contact,
                             first: t.r#type.clone(),
                             second: Option::from(t.designator.clone().unwrap_or("".to_string())),
@@ -613,13 +588,13 @@ fn render(f: &mut Frame, app: &mut Tui) {
 
                     let textw = Text::from(msgs.clone()).style(Style::default());
                     let paragraph = Paragraph::new(textw);
-                    let block = match app.ppl_editing {
+                    match app.ppl_editing {
                         true => match app.ppl_field_editing {
                             true => {
                                 let ced = editables
                                     .get(app.ppl_detail_state.selected().unwrap())
                                     .unwrap();
-                                match { ced.tgt.clone() } {
+                                match ced.tgt.clone() {
                                     Editablez::Trait => {
                                         let input_a = Paragraph::new(app.ppl_input_a.value())
                                             .block(
@@ -764,7 +739,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         false => {
                             let block = Block::new()
                                 .borders(Borders::ALL)
-                                .title(format!("{}", curr.name.clone()));
+                                .title(curr.name.clone().to_string());
                             f.render_widget(paragraph.clone().block(block), layout_ppl[1]);
                         }
                     };

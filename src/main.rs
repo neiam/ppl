@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::ErrReport;
-use crossterm::event::Event;
 use interim::DateError;
 use log::info;
 use sea_orm::*;
@@ -94,10 +93,7 @@ async fn main() -> Result<(), PplError> {
 
     let cli = Cli::parse();
 
-    let is_init = match Ppl::find().filter(Me.eq(true)).one(&db).await? {
-        None => false,
-        Some(_) => true,
-    };
+    let is_init = Ppl::find().filter(Me.eq(true)).one(&db).await?.is_some();
 
     match &cli.command {
         Some(Commands::Edit { name }) => {

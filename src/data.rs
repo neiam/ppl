@@ -8,15 +8,12 @@ use crate::entities::{
     contact, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
 };
 use crate::PplError;
-use chrono::{Date, Local, NaiveDate};
-use clap::builder::Str;
+use chrono::{Local, NaiveDate};
 use color_eyre::owo_colors::OwoColorize;
 use log::warn;
-use ratatui::style::palette::tailwind::{AMBER, PURPLE};
+use ratatui::style::palette::tailwind::PURPLE;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
-use tokio::fs::symlink;
-use tracing_subscriber::registry::Data;
 
 fn bool_from_string(input: Option<String>) -> bool {
     if input.is_none() {
@@ -134,7 +131,7 @@ impl PplOps {
     pub async fn create_me(
         db: &DatabaseConnection,
         name: String,
-    ) -> Result<(ppl::Model), PplError> {
+    ) -> Result<ppl::Model, PplError> {
         let p = ppl::ActiveModel {
             id: Default::default(),
             name: Set(name),
@@ -154,7 +151,7 @@ impl PplOps {
             }
         }
     }
-    pub async fn create(db: &DatabaseConnection, name: String) -> Result<(ppl::Model), PplError> {
+    pub async fn create(db: &DatabaseConnection, name: String) -> Result<ppl::Model, PplError> {
         let p = ppl::ActiveModel {
             id: Default::default(),
             name: Set(name),
@@ -363,7 +360,7 @@ impl SigDateOps {
                 let mut am: sig_date::ActiveModel = instance.into();
 
                 am.event = Set(event);
-                am.date = Set(date.unwrap_or(NaiveDate::default()));
+                am.date = Set(date.unwrap_or_default());
                 am.do_remind = Set(do_remind);
                 am.update(db).await?;
                 Ok(())
