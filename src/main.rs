@@ -1,20 +1,27 @@
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::ErrReport;
 use crossterm::event::Event;
+use interim::DateError;
 use log::info;
 use sea_orm::*;
 use std::io::{self};
 
+mod color;
+mod data;
 mod db;
+mod do_add;
 mod do_init;
+mod do_tui;
 mod entities;
 mod migrator;
 
+use crate::do_add::{do_add, AddArgs};
 use crate::entities::ppl::Column::Me;
 use entities::prelude::*;
 
 #[derive(Debug)]
 enum PplError {
+    DateError(DateError),
     DbError(DbErr),
     EyreError(ErrReport),
     Std(io::Error),
@@ -37,6 +44,12 @@ impl From<ErrReport> for PplError {
     }
 }
 
+impl From<DateError> for PplError {
+    fn from(value: DateError) -> Self {
+        PplError::DateError(value)
+    }
+}
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -56,7 +69,9 @@ enum Commands {
     /// Show MOTD Version
     MOTD,
     /// Add ppl
-    Add { name: String },
+    Add(AddArgs),
+    /// Aug ppl
+    Aug,
     /// Edit ppl
     Edit { name: Option<String> },
     /// Show ppl
@@ -73,7 +88,7 @@ const DATABASE_URL: &str = "sqlite://database.sqlite?mode=rwc";
 #[tokio::main]
 async fn main() -> Result<(), PplError> {
     env_logger::init();
-    // color_eyre::install()?;
+    color_eyre::install()?;
     let db = Database::connect(DATABASE_URL).await?;
     db::check_migrations(&db).await?;
 
@@ -89,14 +104,14 @@ async fn main() -> Result<(), PplError> {
             println!("'edit: {:?}", name)
         }
         None => {
-            println!("Showing PPL");
+            println!("ppl");
             // show().expect("failed2draw")
         }
         Some(Commands::MOTD { .. }) => {}
         Some(Commands::Init { .. }) => match is_init {
             false => {
                 info!("Uninitialized");
-                color_eyre::install()?;
+
                 let terminal = ratatui::init();
                 let result = do_init::run_init(terminal, db).await;
                 ratatui::restore();
@@ -104,11 +119,19 @@ async fn main() -> Result<(), PplError> {
                 info!("Init complete");
             }
             true => {
-                info!("ppl has been initialized already");
+                println!("ppl has been initialized already");
             }
         },
-        Some(Commands::Add { .. }) => {}
-        Some(Commands::Tui) => {}
+        Some(Commands::Add(args)) => {
+            do_add(args, db).await;
+        }
+        Some(Commands::Aug) => {}
+        Some(Commands::Tui) => {
+            let terminal = ratatui::init();
+            let result = do_tui::run_tui(terminal, db).await;
+            ratatui::restore();
+            drop(result);
+        }
         Some(Commands::Calendar) => {}
         Some(Commands::Show {}) => match is_init {
             true => {

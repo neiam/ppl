@@ -28,3 +28,4 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 directories = "5.0.1"
 lazy_static = "1.5.0"
+colored = { version = "2.2.0" }

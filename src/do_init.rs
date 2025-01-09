@@ -1,3 +1,4 @@
+use crate::data::PplOps;
 use crate::entities::prelude::Traits;
 use crate::entities::prelude::{TierDefaults, TraitDefaults};
 use crate::entities::{contact, ppl, relation, sig_date, tier_defaults, trait_defaults, traits};
@@ -146,7 +147,7 @@ impl Default for Init {
                     selection: Selection::Selected,
                     symbol: "📬".to_string(),
                     color: "RED".to_string(),
-                    name: "mailing".to_string(),
+                    name: "address".to_string(),
                     is_date: false,
                     is_contact: true,
                 },
@@ -282,7 +283,7 @@ pub async fn run_init(
                                         split.reverse();
                                         app.aliases = split
                                             .iter()
-                                            .map(|s| s.to_string())
+                                            .map(|s| s.trim().to_string())
                                             .collect::<Vec<String>>();
                                     }
                                 }
@@ -360,14 +361,7 @@ pub async fn run_init(
                                 //     .build()?;
                                 // Ppl::insert()
                                 app.debugmsgs.push(("---".to_string(), "---".to_string()));
-                                let p = ppl::ActiveModel {
-                                    id: Default::default(),
-                                    name: Set(app.name.clone()),
-                                    me: Set(true),
-                                    date_ins: Set(Local::today().naive_local()),
-                                    date_up: Set(Local::today().naive_local()),
-                                };
-                                let pp: ppl::Model = p.insert(&db).await?;
+                                let pp = PplOps::create_me(&db, app.name.clone()).await?;
                                 app.debugmsgs.push(("ppid".to_string(), pp.id.to_string()));
 
                                 if !app.aliases.is_empty() {
@@ -424,7 +418,7 @@ pub async fn run_init(
                                     r#type: Set("address".to_string()),
                                     designator: Default::default(),
                                     value: Set(app.place.clone()),
-                                    date_acq: Set(Local::today().naive_local()),
+                                    date_acq: Set(Some(Local::today().naive_local())),
                                     date_ins: Set(Local::today().naive_local()),
                                     date_up: Set(Local::today().naive_local()),
                                 };

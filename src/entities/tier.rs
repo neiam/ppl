@@ -9,8 +9,8 @@ pub struct Model {
     pub id: i32,
     pub ppl_id: i32,
     pub name: String,
-    pub color: String,
-    pub symbol: String,
+    pub color: Option<String>,
+    pub symbol: Option<String>,
     pub date_ins: Date,
     pub date_up: Date,
 }

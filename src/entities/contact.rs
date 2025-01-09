@@ -11,7 +11,7 @@ pub struct Model {
     pub r#type: String,
     pub designator: Option<String>,
     pub value: String,
-    pub date_acq: Date,
+    pub date_acq: Option<Date>,
     pub date_ins: Date,
     pub date_up: Date,
 }

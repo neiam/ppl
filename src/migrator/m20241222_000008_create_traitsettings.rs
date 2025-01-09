@@ -28,7 +28,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TraitDefaults::Default).boolean().not_null())
                     .col(ColumnDef::new(TraitDefaults::Enabled).boolean().not_null())
                     .col(ColumnDef::new(TraitDefaults::IsDate).boolean().not_null())
-                    .col(ColumnDef::new(TraitDefaults::IsContact).boolean().not_null())
+                    .col(
+                        ColumnDef::new(TraitDefaults::IsContact)
+                            .boolean()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TraitDefaults::Color).string().not_null())
                     .col(ColumnDef::new(TraitDefaults::Symbol).string().not_null())
                     .col(ColumnDef::new(TraitDefaults::DateIns).date().not_null())
@@ -60,9 +64,9 @@ pub enum TraitDefaults {
     Table,
     Id,
     Key,
-    Default, // show in new forms / as-missing
-    Enabled, // actually-show-in-new-forms-or-not
-    IsDate, // map to a sig-date in the as-missings
+    Default,   // show in new forms / as-missing
+    Enabled,   // actually-show-in-new-forms-or-not
+    IsDate,    // map to a sig-date in the as-missings
     IsContact, // map to a contact in the as-missings
     Color,
     Symbol,

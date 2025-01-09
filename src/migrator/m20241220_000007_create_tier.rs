@@ -26,8 +26,8 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Tier::PplId).integer().not_null())
                     .col(ColumnDef::new(Tier::Name).string().not_null())
-                    .col(ColumnDef::new(Tier::Color).string().not_null())
-                    .col(ColumnDef::new(Tier::Symbol).string().not_null())
+                    .col(ColumnDef::new(Tier::Color).string().null())
+                    .col(ColumnDef::new(Tier::Symbol).string().null())
                     .col(ColumnDef::new(Tier::DateIns).date().not_null())
                     .col(ColumnDef::new(Tier::DateUp).date().not_null())
                     .to_owned(),

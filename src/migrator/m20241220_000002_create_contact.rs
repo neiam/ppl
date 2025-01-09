@@ -26,7 +26,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Contact::Type).string().not_null())
                     .col(ColumnDef::new(Contact::Designator).string().null())
                     .col(ColumnDef::new(Contact::Value).string().not_null())
-                    .col(ColumnDef::new(Contact::DateAcq).date().not_null())
+                    .col(ColumnDef::new(Contact::DateAcq).date().null())
                     .col(ColumnDef::new(Contact::DateIns).date().not_null())
                     .col(ColumnDef::new(Contact::DateUp).date().not_null())
                     .to_owned(),
