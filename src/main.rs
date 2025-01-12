@@ -24,6 +24,7 @@ enum PplError {
     DbError(DbErr),
     EyreError(ErrReport),
     Std(io::Error),
+    XDG(xdg::BaseDirectoriesError),
 }
 
 impl From<io::Error> for PplError {
@@ -46,6 +47,12 @@ impl From<ErrReport> for PplError {
 impl From<DateError> for PplError {
     fn from(value: DateError) -> Self {
         PplError::DateError(value)
+    }
+}
+
+impl From<xdg::BaseDirectoriesError> for PplError {
+    fn from(value: xdg::BaseDirectoriesError) -> Self {
+        PplError::XDG(value)
     }
 }
 
@@ -83,12 +90,19 @@ enum Commands {
     Stats,
 }
 
-const DATABASE_URL: &str = "sqlite://database.sqlite?mode=rwc";
 #[tokio::main]
 async fn main() -> Result<(), PplError> {
+    let xdg_dirs = xdg::BaseDirectories::with_prefix("pplapp")?;
+    xdg_dirs.create_data_directory("")?;
+    let data_home_path = xdg_dirs.get_data_home();
+    let database_url: String = format!(
+        "sqlite://{}/db.db?mode=rwc",
+        data_home_path.to_str().unwrap()
+    );
+
     env_logger::init();
     color_eyre::install()?;
-    let db = Database::connect(DATABASE_URL).await?;
+    let db = Database::connect(database_url).await?;
     db::check_migrations(&db).await?;
 
     let cli = Cli::parse();

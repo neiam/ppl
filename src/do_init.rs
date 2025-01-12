@@ -5,7 +5,7 @@ use crate::entities::{contact, ppl, relation, sig_date, tier_defaults, trait_def
 use crate::PplError;
 use chrono::NaiveDate;
 use crossterm::event;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use enum_iterator::{all, next, previous, Sequence};
 use interim::{parse_date_string, Dialect};
 use ratatui::{

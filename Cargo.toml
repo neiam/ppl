@@ -31,3 +31,4 @@ lazy_static = "1.5.0"
 colored = { version = "2.2.0" }
 time = "0.3.37"
 itertools = "0.12.0"
+xdg = "2.5.2"
