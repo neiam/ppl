@@ -1024,7 +1024,7 @@ impl From<PplAndProps> for ListItem<'_> {
                                 lcolor(
                                     &t.color
                                         .clone()
-                                        .unwrap_or(t.color.clone().unwrap_or("".to_string())),
+                                        .unwrap_or(tierd.color.clone().unwrap_or("".to_string())),
                                 ),
                             ),
                             otherwise => Line::styled(
