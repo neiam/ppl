@@ -13,6 +13,7 @@ use color_eyre::owo_colors::OwoColorize;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 use enum_iterator::{next, Sequence};
+use itertools::Itertools;
 use ratatui::prelude::{Constraint, Direction, Layout, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::style::palette::material::AMBER;
 use ratatui::style::palette::tailwind::{GREEN, ORANGE, PINK, SLATE, TEAL, WHITE};
@@ -167,7 +168,7 @@ pub async fn run_tui(
     let mut app = Tui::default();
     app.reload(&db).await?;
     loop {
-        terminal.draw(|f| render(f, &mut app));
+        let _ = terminal.draw(|f| render(f, &mut app));
         match event::read()? {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 match key_event.code {
@@ -866,7 +867,6 @@ fn render(f: &mut Frame, app: &mut Tui) {
                 .unwrap()
                 .replace_day(1)
                 .unwrap();
-            &app.sigdate_list.sort_by(|a, b| a.date.cmp(&b.date));
             let as_upcoming = &app
                 .sigdate_list
                 .iter()
@@ -892,6 +892,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         trait_defaults: app.def_trait_list.clone(),
                     }
                 })
+                .sorted_by(|a, b| a.date.date.cmp(&b.date.date))
                 .collect::<Vec<SigDateAndProps>>();
             let mut event_list = CalendarEventStore::today(
                 Style::default()
@@ -1056,19 +1057,19 @@ impl From<&SigDateAndProps> for ListItem<'_> {
             .find(|q| q.key == value.date.event && q.is_date == true);
         let line = match (value.date.do_remind, default) {
             (true, Some(t)) => {
-                Line::styled(format!(" ✓ {} {} {}", t.symbol, n, value.date.date), WHITE)
+                Line::styled(format!(" ✓ {} {:6} {}", t.symbol, n, value.date.date), WHITE)
             }
             (true, None) => Line::styled(
-                format!(" ✓ 📅 {} {} ({})", n, value.date.date, value.date.event),
+                format!(" ✓ 📅 {:6} {} ({})", n, value.date.date, value.date.event),
                 WHITE,
             ),
             (false, Some(t)) => Line::styled(
-                format!(" ☐ {} {} {}", t.symbol, n, value.date.date),
+                format!(" ☐ {} {:6} {}", t.symbol, n, value.date.date),
                 SLATE.c500,
             ),
 
             (false, None) => Line::styled(
-                format!(" ☐ 📅 {} {} ({})", n, value.date.date, value.date.event),
+                format!(" ☐ 📅 {:6} {} ({})", n, value.date.date, value.date.event),
                 SLATE.c500,
             ),
         };
@@ -1091,7 +1092,7 @@ impl From<&ppl::Model> for ListItem<'_> {
 impl From<&tier_defaults::Model> for ListItem<'_> {
     fn from(value: &tier_defaults::Model) -> Self {
         let line = match value.enabled {
-            true => Line::styled(format!(" ✓ {:?} {}", value.symbol, value.key), WHITE),
+            true => Line::styled(format!(" ✓ {:?} {}", value.symbol, value.key), lcolor(&value.color.clone().unwrap_or("".to_string()))),
             false => Line::styled(format!(" ☐ {:?} {}", value.symbol, value.key), SLATE.c500),
         };
 
@@ -1101,7 +1102,7 @@ impl From<&tier_defaults::Model> for ListItem<'_> {
 impl From<&trait_defaults::Model> for ListItem<'_> {
     fn from(value: &trait_defaults::Model) -> Self {
         let line = match value.enabled {
-            true => Line::styled(format!(" ✓ {} {}", value.symbol, value.key), WHITE),
+            true => Line::styled(format!(" ✓ {} {}", value.symbol, value.key), lcolor(&value.color)),
             false => Line::styled(format!(" ☐ {} {}", value.symbol, value.key), SLATE.c500),
         };
 
