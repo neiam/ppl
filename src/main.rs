@@ -119,7 +119,7 @@ async fn main() -> Result<(), PplError> {
             }
         },
         Some(Commands::Add(args)) => {
-            do_add(args, db).await;
+            let _ = do_add(args, db).await;
         }
         Some(Commands::Aug) => {}
         Some(Commands::Tui) => {

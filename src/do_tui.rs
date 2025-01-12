@@ -9,15 +9,14 @@ use crate::entities::{
 };
 use crate::PplError;
 use chrono::{Datelike, NaiveDate};
-use color_eyre::owo_colors::OwoColorize;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 use enum_iterator::{next, Sequence};
 use itertools::Itertools;
 use ratatui::prelude::{Constraint, Direction, Layout, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::style::palette::material::AMBER;
-use ratatui::style::palette::tailwind::{GREEN, ORANGE, PINK, SLATE, TEAL, WHITE};
-use ratatui::style::{Color, Styled};
+use ratatui::style::palette::tailwind::{GREEN, ORANGE, PINK, SLATE, WHITE};
+use ratatui::style::{Color};
 use ratatui::widgets::calendar::{CalendarEventStore, Monthly};
 use ratatui::widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
@@ -545,7 +544,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                                 Span::raw(t.name.clone()),
                             ])),
                             // _ => {}
-                            (Some(main), Some(other)) => msgs.push(Line::from(vec![
+                            (Some(main), Some(_other)) => msgs.push(Line::from(vec![
                                 Span::styled(
                                     format!("{} {}: ", main, t.name.clone()),
                                     Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
@@ -870,9 +869,9 @@ fn render(f: &mut Frame, app: &mut Tui) {
             let as_upcoming = &app
                 .sigdate_list
                 .iter()
-                .map(|mut d| {
+                .map(|d| {
                     let mut n = d.clone();
-                    n.date = NaiveDate::from_ymd(start.year(), n.date.month(), n.date.day());
+                    n.date = NaiveDate::from_ymd_opt(start.year(), n.date.month(), n.date.day()).unwrap();
                     let p = app
                         .ppl_list
                         .iter()
@@ -977,7 +976,6 @@ fn render(f: &mut Frame, app: &mut Tui) {
 
             f.render_stateful_widget(ppl, chunks[1], &mut app.def_trait_state);
         }
-        _ => {}
     }
 }
 

@@ -60,9 +60,9 @@ impl ContactOps {
             r#type: Set(typ),
             designator: Set(Option::from(designator)),
             value: Set(value),
-            date_acq: Set(Some(Local::today().naive_local())),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_acq: Set(Some(Local::now().date_naive())),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
 
         let pp = p.insert(db).await;
@@ -118,7 +118,7 @@ impl ContactOps {
                 am.designator = Set(designator);
                 am.r#type = Set(typ);
                 am.value = Set(value);
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -135,8 +135,8 @@ impl PplOps {
             name: Set(name),
             nick: NotSet,
             me: Set(true),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let pp = p.insert(db).await;
         match pp {
@@ -156,8 +156,8 @@ impl PplOps {
             name: Set(name),
             me: Set(false),
             nick: NotSet,
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let pp = p.insert(db).await;
         match pp {
@@ -190,7 +190,7 @@ impl PplOps {
                     None => {}
                     Some(i) => am.name = Set(i),
                 }
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -217,8 +217,8 @@ impl RelationOps {
             r#type: Set(typ),
             date_entered: Set(entered),
             date_ended: Set(ended),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
             superseded: Set(superseded),
         };
         let pp = p.insert(db).await;
@@ -289,7 +289,7 @@ impl RelationOps {
                     Some(date) => am.date_ended = Set(Option::from(date)),
                 }
                 am.r#type = Set(typ);
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -314,8 +314,8 @@ impl SigDateOps {
             event: Set(event),
             do_remind: Set(do_remind),
             with_ppl: Default::default(),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
 
         let pp = p.insert(db).await;
@@ -366,7 +366,7 @@ impl SigDateOps {
                 am.event = Set(event);
                 am.date = Set(date.unwrap_or_default());
                 am.do_remind = Set(do_remind);
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -388,8 +388,8 @@ impl TierOps {
             name: Set(tier.to_string()),
             color: Default::default(),
             symbol: Default::default(),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let tt = t.insert(db).await;
         match tt {
@@ -436,7 +436,7 @@ impl TierOps {
                 am.name = Set(name);
                 am.color = Set(color);
                 am.symbol = Set(symbol);
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -460,8 +460,8 @@ impl TraitOps {
             key: Set(key.to_string()),
             value: Set(value),
             hidden: Set(hidden),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let tt = t.insert(db).await;
         match tt {
@@ -512,7 +512,7 @@ impl TraitOps {
                     Some(j) => am.value = Set(j),
                 }
                 am.hidden = Set(hidden);
-                am.date_up = Set(Local::today().naive_local());
+                am.date_up = Set(Local::now().date_naive());
                 am.update(db).await?;
                 Ok(())
             }
@@ -526,7 +526,6 @@ impl TierDefaultOps {
     pub async fn create(
         db: &DatabaseConnection,
         key: String,
-        value: String,
         default: bool,
         enabled: bool,
         color: String,
@@ -534,13 +533,13 @@ impl TierDefaultOps {
     ) -> Result<(), PplError> {
         let t = tier_defaults::ActiveModel {
             id: Default::default(),
-            key: Default::default(),
-            default: Default::default(),
-            enabled: Default::default(),
-            color: Default::default(),
-            symbol: Default::default(),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            key: Set(key),
+            default: Set(default),
+            enabled: Set(enabled),
+            color: Set(Option::from(color)),
+            symbol: Set(Option::from(symbol)),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let tt = t.insert(db).await;
         match tt {
@@ -565,7 +564,6 @@ pub struct TraitDefaultOps {}
 impl TraitDefaultOps {
     pub async fn create(
         db: &DatabaseConnection,
-        ppl_id: i32,
         key: String,
         color: String,
         symbol: String,
@@ -583,8 +581,8 @@ impl TraitDefaultOps {
             is_contact: Set(is_contact),
             color: Set(color),
             symbol: Set(symbol),
-            date_ins: Set(Local::today().naive_local()),
-            date_up: Set(Local::today().naive_local()),
+            date_ins: Set(Local::now().date_naive()),
+            date_up: Set(Local::now().date_naive()),
         };
         let tt = t.insert(db).await;
         match tt {

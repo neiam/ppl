@@ -249,9 +249,6 @@ impl fmt::Display for DefaultTiers {
         write!(f, "{:?}", self)
     }
 }
-
-fn handle_key_event(key_event: KeyEvent) {}
-
 pub async fn run_init(
     mut terminal: DefaultTerminal,
     db: DatabaseConnection,
@@ -374,8 +371,8 @@ pub async fn run_init(
                                             key: Set("alias".to_string()),
                                             value: Set(alias.clone()),
                                             hidden: Set(false),
-                                            date_ins: Set(Local::today().naive_local()),
-                                            date_up: Set(Local::today().naive_local()),
+                                            date_ins: Set(Local::now().date_naive()),
+                                            date_up: Set(Local::now().date_naive()),
                                         })
                                         .collect::<Vec<traits::ActiveModel>>();
                                     let aliases = Traits::insert_many(alias_am).exec(&db).await;
@@ -398,8 +395,8 @@ pub async fn run_init(
                                     event: Set("birthday".to_string()),
                                     do_remind: Set(true),
                                     with_ppl: Default::default(),
-                                    date_ins: Set(Local::today().naive_local()),
-                                    date_up: Set(Local::today().naive_local()),
+                                    date_ins: Set(Local::now().date_naive()),
+                                    date_up: Set(Local::now().date_naive()),
                                 };
 
                                 let bb = b.insert(&db).await;
@@ -418,9 +415,9 @@ pub async fn run_init(
                                     r#type: Set("address".to_string()),
                                     designator: Default::default(),
                                     value: Set(app.place.clone()),
-                                    date_acq: Set(Some(Local::today().naive_local())),
-                                    date_ins: Set(Local::today().naive_local()),
-                                    date_up: Set(Local::today().naive_local()),
+                                    date_acq: Set(Some(Local::now().date_naive())),
+                                    date_ins: Set(Local::now().date_naive()),
+                                    date_up: Set(Local::now().date_naive()),
                                 };
                                 //
                                 let plpl = pl.insert(&db).await;
@@ -439,8 +436,8 @@ pub async fn run_init(
                                             name: Set(ofppl.clone()),
                                             me: Set(false),
                                             nick: NotSet,
-                                            date_ins: Set(Local::today().naive_local()),
-                                            date_up: Set(Local::today().naive_local()),
+                                            date_ins: Set(Local::now().date_naive()),
+                                            date_up: Set(Local::now().date_naive()),
                                         };
                                         let ofof = of.insert(&db).await;
                                         match ofof {
@@ -458,8 +455,8 @@ pub async fn run_init(
                                                     date_entered: Set(Option::from(app.bday)),
                                                     date_ended: Default::default(),
                                                     superseded: Set(false),
-                                                    date_ins: Set(Local::today().naive_local()),
-                                                    date_up: Set(Local::today().naive_local()),
+                                                    date_ins: Set(Local::now().date_naive()),
+                                                    date_up: Set(Local::now().date_naive()),
                                                 };
 
                                                 let rr = r.insert(&db).await;
@@ -493,8 +490,8 @@ pub async fn run_init(
                                             name: Set(ofppl.clone()),
                                             me: Set(false),
                                             nick: NotSet,
-                                            date_ins: Set(Local::today().naive_local()),
-                                            date_up: Set(Local::today().naive_local()),
+                                            date_ins: Set(Local::now().date_naive()),
+                                            date_up: Set(Local::now().date_naive()),
                                         };
                                         let ofof = of.insert(&db).await;
                                         match ofof {
@@ -512,8 +509,8 @@ pub async fn run_init(
                                                     date_entered: Set(None),
                                                     date_ended: Default::default(),
                                                     superseded: Set(false),
-                                                    date_ins: Set(Local::today().naive_local()),
-                                                    date_up: Set(Local::today().naive_local()),
+                                                    date_ins: Set(Local::now().date_naive()),
+                                                    date_up: Set(Local::now().date_naive()),
                                                 };
 
                                                 let rr = r.insert(&db).await;
@@ -553,8 +550,8 @@ pub async fn run_init(
                                             enabled: Set(true),
                                             color: Default::default(),
                                             symbol: Default::default(),
-                                            date_ins: Set(Local::today().naive_local()),
-                                            date_up: Set(Local::today().naive_local()),
+                                            date_ins: Set(Local::now().date_naive()),
+                                            date_up: Set(Local::now().date_naive()),
                                         })
                                         .collect::<Vec<tier_defaults::ActiveModel>>();
 
@@ -584,8 +581,8 @@ pub async fn run_init(
                                             is_contact: Set(dtrait.is_contact),
                                             color: Set(dtrait.color.clone()),
                                             symbol: Set(dtrait.symbol.clone()),
-                                            date_ins: Set(Local::today().naive_local()),
-                                            date_up: Set(Local::today().naive_local()),
+                                            date_ins: Set(Local::now().date_naive()),
+                                            date_up: Set(Local::now().date_naive()),
                                         })
                                         .collect::<Vec<trait_defaults::ActiveModel>>();
 
@@ -612,8 +609,8 @@ pub async fn run_init(
                                 //         is_contact: Set(dtrait.is_contact),
                                 //         color: Set(dtrait.color.clone()),
                                 //         symbol: Set(dtrait.symbol.clone()),
-                                //         date_ins: Set(Local::today().naive_local()),
-                                //         date_up: Set(Local::today().naive_local()),
+                                //         date_ins: Set(Local::now().date_naive()),
+                                //         date_up: Set(Local::now().date_naive()),
                                 //     };
                                 //
                                 //     let trttrt: trait_default::Model = trt.insert(&db).await?;
@@ -835,9 +832,9 @@ fn render(f: &mut Frame, app: &mut Init) {
     messages.extend(app.debugmsgs.clone());
     let messages_v: Vec<ListItem> = messages
         .iter()
-        .filter(|(t, i)| **i != "".to_string())
+        .filter(|(_t, i)| **i != "".to_string())
         .enumerate()
-        .map(|(i, (t, m))| {
+        .map(|(_i, (t, m))| {
             let content = vec![Line::from(vec![
                 Span::styled(t, Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(format!(": {}", m)),
@@ -1020,7 +1017,6 @@ fn render(f: &mut Frame, app: &mut Init) {
 }
 const TEXT_FG_COLOR: Color = SLATE.c200;
 const COMPLETED_TEXT_FG_COLOR: Color = GREEN.c500;
-const BLUEBLUE: Color = BLUE.c500;
 
 pub fn lcolor(input: &String) -> Color {
     match input.to_lowercase().as_str() {
