@@ -17,7 +17,7 @@ use ratatui::{
 use sea_orm::sqlx::types::chrono;
 use sea_orm::sqlx::types::chrono::Local;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, NotSet};
 use std::fmt;
 use std::string::String;
 use tui_input::backend::crossterm::EventHandler;
@@ -438,6 +438,7 @@ pub async fn run_init(
                                             id: Default::default(),
                                             name: Set(ofppl.clone()),
                                             me: Set(false),
+                                            nick: NotSet,
                                             date_ins: Set(Local::today().naive_local()),
                                             date_up: Set(Local::today().naive_local()),
                                         };
@@ -491,6 +492,7 @@ pub async fn run_init(
                                             id: Default::default(),
                                             name: Set(ofppl.clone()),
                                             me: Set(false),
+                                            nick: NotSet,
                                             date_ins: Set(Local::today().naive_local()),
                                             date_up: Set(Local::today().naive_local()),
                                         };
@@ -1020,7 +1022,7 @@ const TEXT_FG_COLOR: Color = SLATE.c200;
 const COMPLETED_TEXT_FG_COLOR: Color = GREEN.c500;
 const BLUEBLUE: Color = BLUE.c500;
 
-fn lcolor(input: &String) -> Color {
+pub fn lcolor(input: &String) -> Color {
     match input.to_lowercase().as_str() {
         "red" => RED.c500,
         "gold" => AMBER.c500,

@@ -1,29 +1,35 @@
 use crate::data::{
     ContactOps, PplOps, RelationOps, SigDateOps, TierDefaultOps, TierOps, TraitDefaultOps, TraitOps,
 };
+use crate::do_init::lcolor;
 use crate::entities::ppl::Model;
+use crate::entities::prelude::{TierDefaults, Traits};
 use crate::entities::{
     contact, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
 };
 use crate::PplError;
+use chrono::{Datelike, NaiveDate};
 use color_eyre::owo_colors::OwoColorize;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 use enum_iterator::{next, Sequence};
 use ratatui::prelude::{Constraint, Direction, Layout, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::style::palette::material::AMBER;
-use ratatui::style::palette::tailwind::{ORANGE, SLATE, WHITE};
+use ratatui::style::palette::tailwind::{GREEN, ORANGE, PINK, SLATE, TEAL, WHITE};
 use ratatui::style::{Color, Styled};
+use ratatui::widgets::calendar::{CalendarEventStore, Monthly};
 use ratatui::widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use sea_orm::DatabaseConnection;
 use std::ops::Index;
+use time::{Date, Month, OffsetDateTime};
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
 
 struct Tui {
     current_tab: Tabs,
     sigdate_list: Vec<sig_date::Model>,
+    sigdate_cal_state: ListState,
     trait_list: Vec<traits::Model>,
     tier_list: Vec<tier::Model>,
     rel_list: Vec<relation::Model>,
@@ -108,6 +114,7 @@ impl Default for Tui {
         Tui {
             current_tab: Tabs::Ppl,
             sigdate_list: vec![],
+            sigdate_cal_state: ListState::default(),
             trait_list: vec![],
             tier_list: vec![],
             rel_list: vec![],
@@ -136,6 +143,21 @@ fn get_style(mine: u8, cursor: u8, total: u8) -> Color {
     } else {
         SLATE.c500
     }
+}
+
+fn get_cal<'a>(
+    month: Month,
+    year: i32,
+    events: &CalendarEventStore,
+) -> Monthly<'a, &CalendarEventStore> {
+    let default_style = Style::default()
+        .add_modifier(Modifier::BOLD)
+        .fg(AMBER.c500)
+        .bg(SLATE.c800);
+
+    Monthly::new(Date::from_calendar_date(year, month, 1).unwrap(), events)
+        .show_month_header(Style::default())
+        .default_style(default_style)
 }
 
 pub async fn run_tui(
@@ -178,66 +200,68 @@ pub async fn run_tui(
                         true => {
                             app.ppl_field_idx += 1;
                         }
-                        false => {
-                            app.current_tab = next(&app.current_tab).unwrap_or(Tabs::Ppl)
-                        }
+                        false => app.current_tab = next(&app.current_tab).unwrap_or(Tabs::Ppl),
                     },
                     KeyCode::Esc => break Ok(()),
-                    KeyCode::Char('e') => if app.current_tab == Tabs::Ppl { match app.ppl_field_editing {
-                        true => {
-                            default_editing_handler(&mut app, &key_event);
+                    KeyCode::Char('e') => {
+                        if app.current_tab == Tabs::Ppl {
+                            match app.ppl_field_editing {
+                                true => {
+                                    default_editing_handler(&mut app, &key_event);
+                                }
+                                false => {
+                                    app.ppl_editing = !app.ppl_editing;
+                                }
+                            }
                         }
-                        false => {
-                            app.ppl_editing = !app.ppl_editing;
-                        }
-                    } },
+                    }
                     KeyCode::Char('f') => {
                         default_editing_handler(&mut app, &key_event);
                     }
-                    KeyCode::Enter => if app.current_tab == Tabs::Ppl { if app.ppl_editing && app.ppl_detail_state.selected().is_some() {
-                        let idx = &app.ppl_detail_state.selected().unwrap();
-                        let e = app.ppl_editables.get(*idx).unwrap();
-                        if !app.ppl_field_editing {
-                            // let k
-                            app.ppl_input_a = e.first.clone().into();
-                            app.ppl_input_b =
-                                e.second.clone().unwrap_or("".to_string()).into();
-                            app.ppl_input_c =
-                                e.third.clone().unwrap_or("".to_string()).into();
-                        } else {
-                            let new_editable = Editable {
-                                tgt: e.tgt.clone(),
-                                id: e.id,
-                                first: app.ppl_input_a.value().parse().unwrap(),
-                                second: Option::from(
-                                    app.ppl_input_b.value().to_string(),
-                                ),
-                                third: Option::from(
-                                    app.ppl_input_c.value().to_string(),
-                                ),
-                            };
+                    KeyCode::Enter => {
+                        if app.current_tab == Tabs::Ppl {
+                            if app.ppl_editing && app.ppl_detail_state.selected().is_some() {
+                                let idx = &app.ppl_detail_state.selected().unwrap();
+                                let e = app.ppl_editables.get(*idx).unwrap();
+                                if !app.ppl_field_editing {
+                                    // let k
+                                    app.ppl_input_a = e.first.clone().into();
+                                    app.ppl_input_b =
+                                        e.second.clone().unwrap_or("".to_string()).into();
+                                    app.ppl_input_c =
+                                        e.third.clone().unwrap_or("".to_string()).into();
+                                } else {
+                                    let new_editable = Editable {
+                                        tgt: e.tgt.clone(),
+                                        id: e.id,
+                                        first: app.ppl_input_a.value().parse().unwrap(),
+                                        second: Option::from(app.ppl_input_b.value().to_string()),
+                                        third: Option::from(app.ppl_input_c.value().to_string()),
+                                    };
 
-                            match e.tgt {
-                                Editablez::Trait => {
-                                    TraitOps::updatee(&db, new_editable).await;
+                                    match e.tgt {
+                                        Editablez::Trait => {
+                                            TraitOps::updatee(&db, new_editable).await;
+                                        }
+                                        Editablez::Tier => {
+                                            TierOps::updatee(&db, new_editable).await;
+                                        }
+                                        Editablez::Contact => {
+                                            ContactOps::updatee(&db, new_editable).await;
+                                        }
+                                        Editablez::Relation => {
+                                            RelationOps::updatee(&db, new_editable).await;
+                                        }
+                                        Editablez::SigDate => {
+                                            SigDateOps::updatee(&db, new_editable).await;
+                                        }
+                                    };
+                                    app.reload(&db).await?;
                                 }
-                                Editablez::Tier => {
-                                    TierOps::updatee(&db, new_editable).await;
-                                }
-                                Editablez::Contact => {
-                                    ContactOps::updatee(&db, new_editable).await;
-                                }
-                                Editablez::Relation => {
-                                    RelationOps::updatee(&db, new_editable).await;
-                                }
-                                Editablez::SigDate => {
-                                    SigDateOps::updatee(&db, new_editable).await;
-                                }
-                            };
-                            app.reload(&db).await?;
+                                app.ppl_field_editing = !app.ppl_field_editing;
+                            }
                         }
-                        app.ppl_field_editing = !app.ppl_field_editing;
-                    } },
+                    }
                     _ => {
                         default_editing_handler(&mut app, &key_event);
                     }
@@ -320,7 +344,14 @@ fn render(f: &mut Frame, app: &mut Tui) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
-        .constraints([Constraint::Length(1), Constraint::Length(15)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Percentage(100),
+                Constraint::Length(1),
+            ]
+            .as_ref(),
+        )
         .split(f.area());
 
     let msgw = vec![
@@ -337,6 +368,45 @@ fn render(f: &mut Frame, app: &mut Tui) {
 
     match app.current_tab {
         Tabs::Ppl => {
+            match app.ppl_editing {
+                true => {
+                    let msgw = vec![
+                        Span::styled(
+                            "Enter",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ),
+                        Span::raw(" to modify a ppl entry. "),
+                        Span::styled(
+                            "Shift+Enter",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ),
+                        Span::raw(" to add a ppl entry"),
+                    ];
+                    let textw = Text::from(Line::from(msgw)).style(Style::default());
+                    let welcome = Paragraph::new(textw);
+                    f.render_widget(welcome, chunks[2]);
+                }
+                false => {
+                    let msgw = vec![
+                        Span::styled(
+                            "Tab",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ),
+                        Span::raw(" to switch views"),
+                        Span::styled(
+                            "Enter",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ),
+                        Span::raw(" to add ppl. "),
+                        Span::styled("E", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)),
+                        Span::raw(" to edit the selected ppl. "),
+                    ];
+                    let textw = Text::from(Line::from(msgw)).style(Style::default());
+                    let welcome = Paragraph::new(textw);
+                    f.render_widget(welcome, chunks[2]);
+                }
+            }
+
             let layout_ppl = Layout::default()
                 .direction(Direction::Horizontal)
                 .margin(0)
@@ -353,7 +423,22 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     Constraint::Length(3),
                 ])
                 .split(layout_ppl[1]);
-            let ppl = List::new(&app.ppl_list)
+            let ppls: Vec<PplAndProps> = app
+                .ppl_list
+                .iter()
+                .map(|p| PplAndProps {
+                    ppl: p.clone(),
+                    tiers: app
+                        .tier_list
+                        .iter()
+                        .filter(|t| t.ppl_id == p.id)
+                        .map(|t| t.to_owned())
+                        .collect::<Vec<tier::Model>>(),
+                    tier_defaults: app.def_tier_list.clone(),
+                })
+                .collect::<Vec<PplAndProps>>();
+
+            let ppl = List::new(ppls)
                 .block(Block::bordered().title("ppl"))
                 .style(Style::new().white())
                 .highlight_style(Style::new().italic())
@@ -717,17 +802,32 @@ fn render(f: &mut Frame, app: &mut Tui) {
                                         f.render_widget(input_c, layout_edit[3]);
                                     }
                                 }
-
+                                let title = match &curr.nick {
+                                    None => {
+                                        format!("Editing {}", curr.name.clone())
+                                    }
+                                    Some(n) => {
+                                        format!("Editing {} ({})", curr.name.clone(), n)
+                                    }
+                                };
                                 let block = Block::new()
                                     .borders(Borders::LEFT)
-                                    .title(format!("Editing {}", curr.name.clone()))
+                                    .title(title)
                                     .style(Style::default().fg(ORANGE.c500));
                                 f.render_widget(paragraph.clone().block(block), layout_edit[0])
                             }
                             false => {
+                                let title = match &curr.nick {
+                                    None => {
+                                        format!("Editing {}", curr.name.clone())
+                                    }
+                                    Some(n) => {
+                                        format!("Editing {} ({})", curr.name.clone(), n)
+                                    }
+                                };
                                 let block = Block::new()
                                     .borders(Borders::LEFT)
-                                    .title(format!("Editing {}", curr.name.clone()))
+                                    .title(title)
                                     .style(Style::default().fg(AMBER.c500));
                                 f.render_stateful_widget(
                                     list_contact.block(block),
@@ -737,14 +837,122 @@ fn render(f: &mut Frame, app: &mut Tui) {
                             }
                         },
                         false => {
-                            let block = Block::new()
-                                .borders(Borders::ALL)
-                                .title(curr.name.clone().to_string());
+                            let title = match &curr.nick {
+                                None => {
+                                    format!("{}", curr.name.clone())
+                                }
+                                Some(n) => {
+                                    format!("{} ({})", curr.name.clone(), n)
+                                }
+                            };
+                            let block = Block::new().borders(Borders::ALL).title(title);
                             f.render_widget(paragraph.clone().block(block), layout_ppl[1]);
                         }
                     };
                 }
             }
+        }
+        Tabs::Calendar => {
+            let layout_cal = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(0)
+                .constraints([Constraint::Percentage(26), Constraint::Percentage(74)])
+                .split(chunks[1]);
+
+            let mut start = OffsetDateTime::now_local()
+                .unwrap()
+                .date()
+                .replace_month(Month::January)
+                .unwrap()
+                .replace_day(1)
+                .unwrap();
+            &app.sigdate_list.sort_by(|a, b| a.date.cmp(&b.date));
+            let as_upcoming = &app
+                .sigdate_list
+                .iter()
+                .map(|mut d| {
+                    let mut n = d.clone();
+                    n.date = NaiveDate::from_ymd(start.year(), n.date.month(), n.date.day());
+                    let p = app
+                        .ppl_list
+                        .iter()
+                        .find(|p| p.id == n.ppl_id)
+                        .unwrap()
+                        .clone();
+                    let tr = app
+                        .trait_list
+                        .iter()
+                        .filter(|p| p.id == n.ppl_id)
+                        .map(|t| t.to_owned())
+                        .collect::<Vec<traits::Model>>();
+                    crate::do_tui::SigDateAndProps {
+                        date: n,
+                        ppl: p,
+                        traits: tr,
+                        trait_defaults: app.def_trait_list.clone(),
+                    }
+                })
+                .collect::<Vec<SigDateAndProps>>();
+            let mut event_list = CalendarEventStore::today(
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    .bg(Color::Blue),
+            );
+
+            for u in as_upcoming {
+                event_list.add(
+                    // Date::from_calendar_date(start.year(), Month::try_from(4 as u8).expect("oops"), 15 as u8).expect("doubleoops"),
+                    Date::from_calendar_date(
+                        start.year(),
+                        Month::try_from(u.date.date.month() as u8).expect("oops"),
+                        u.date.date.day() as u8,
+                    )
+                    .expect("doubleoops"),
+                    Style::default()
+                        .add_modifier(Modifier::BOLD)
+                        .fg(GREEN.c300)
+                        .bg(PINK.c500),
+                );
+            }
+
+            // let _ = as_upcoming.iter().map(|u| {
+            //     let _ = event_list.add(
+            //         Date::from_calendar_date(start.year(), Month::try_from(4 as u8).expect("oops"), 15 as u8).expect("doubleoops"),
+            //         // Date::from_calendar_date(start.year(), Month::try_from(u.date.month() as u8).expect("oops"), u.date.day() as u8).expect("doubleoops"),
+            //         Style::default()
+            //             .add_modifier(Modifier::BOLD)
+            //             .fg(GREEN.c300)
+            //             .bg(PINK.c500),
+            //     );
+            // });
+
+            let rows = Layout::vertical([Constraint::Ratio(1, 2); 2]).split(layout_cal[1]);
+            let cols = rows.iter().flat_map(|row| {
+                Layout::horizontal([Constraint::Ratio(1, 6); 6])
+                    .split(*row)
+                    .to_vec()
+            });
+            for col in cols {
+                let cal = get_cal(start.month(), start.year(), &event_list);
+                f.render_widget(cal, col);
+                start = start.replace_month(start.month().next()).unwrap();
+            }
+
+            let dates = List::new(as_upcoming)
+                .block(Block::bordered().title("upcoming"))
+                .style(Style::new().white())
+                .highlight_style(Style::new().italic())
+                .highlight_symbol(">>")
+                .repeat_highlight_symbol(true)
+                .direction(ListDirection::TopToBottom);
+
+            f.render_stateful_widget(dates, layout_cal[0], &mut app.sigdate_cal_state);
+
+            // let layout_cal_detail = Layout::default()
+            //     .direction(Direction::Horizontal)
+            //     .margin(0)
+            //     .constraints([Constraint::Percentage(25), Constraint::Percentage(75)])
+            //     .split(chunks[1]);
         }
         Tabs::TierSettings => {
             let ppl = List::new(&app.def_tier_list)
@@ -772,8 +980,106 @@ fn render(f: &mut Frame, app: &mut Tui) {
     }
 }
 
+struct PplAndProps {
+    ppl: ppl::Model,
+    tier_defaults: Vec<tier_defaults::Model>,
+    tiers: Vec<tier::Model>,
+}
+
+struct SigDateAndProps {
+    date: sig_date::Model,
+    ppl: ppl::Model,
+    traits: Vec<traits::Model>,
+    trait_defaults: Vec<trait_defaults::Model>,
+}
+
+impl From<PplAndProps> for ListItem<'_> {
+    fn from(value: PplAndProps) -> Self {
+        // value.date_up;
+        let line = match value.ppl.me {
+            true => Line::styled(
+                format!(" 🌟 {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+                WHITE,
+            ),
+            false => match value.tiers.len() {
+                0 => Line::styled(
+                    format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+                    WHITE,
+                ),
+                _ => {
+                    let t = value.tiers.first().unwrap();
+                    match value.tier_defaults.iter().find(|q| q.key == t.name) {
+                        None => Line::styled(
+                            format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+                            WHITE,
+                        ),
+                        Some(tierd) => match t.symbol.clone().unwrap_or("".to_string()).as_str() {
+                            "" => Line::styled(
+                                format!(
+                                    " {} {}",
+                                    tierd.symbol.clone().unwrap_or("".to_string()),
+                                    value.ppl.nick.unwrap_or(value.ppl.name)
+                                ),
+                                lcolor(
+                                    &t.color
+                                        .clone()
+                                        .unwrap_or(t.color.clone().unwrap_or("".to_string())),
+                                ),
+                            ),
+                            otherwise => Line::styled(
+                                format!(
+                                    " {} {}",
+                                    otherwise,
+                                    value.ppl.nick.unwrap_or(value.ppl.name)
+                                ),
+                                lcolor(
+                                    &t.color
+                                        .clone()
+                                        .unwrap_or(tierd.color.clone().unwrap_or("".to_string())),
+                                ),
+                            ),
+                        },
+                    }
+                }
+            },
+        };
+        ListItem::new(line)
+    }
+}
+
+impl From<&SigDateAndProps> for ListItem<'_> {
+    fn from(value: &SigDateAndProps) -> Self {
+        let n = value.ppl.nick.clone().unwrap_or(value.ppl.name.clone());
+        let default = value
+            .trait_defaults
+            .iter()
+            .find(|q| q.key == value.date.event && q.is_date == true);
+        let line = match (value.date.do_remind, default) {
+            (true, Some(t)) => {
+                Line::styled(format!(" ✓ {} {} {}", t.symbol, n, value.date.date), WHITE)
+            }
+            (true, None) => Line::styled(
+                format!(" ✓ 📅 {} {} ({})", n, value.date.date, value.date.event),
+                WHITE,
+            ),
+            (false, Some(t)) => Line::styled(
+                format!(" ☐ {} {} {}", t.symbol, n, value.date.date),
+                SLATE.c500,
+            ),
+
+            (false, None) => Line::styled(
+                format!(" ☐ 📅 {} {} ({})", n, value.date.date, value.date.event),
+                SLATE.c500,
+            ),
+        };
+
+        ListItem::new(line)
+    }
+}
+
 impl From<&ppl::Model> for ListItem<'_> {
     fn from(value: &Model) -> Self {
+        value.date_up;
         let line = match value.me {
             true => Line::styled(format!(" 🌟 {}", value.name), WHITE),
             false => Line::styled(format!("   {}", value.name), WHITE),
@@ -797,6 +1103,23 @@ impl From<&trait_defaults::Model> for ListItem<'_> {
         let line = match value.enabled {
             true => Line::styled(format!(" ✓ {} {}", value.symbol, value.key), WHITE),
             false => Line::styled(format!(" ☐ {} {}", value.symbol, value.key), SLATE.c500),
+        };
+
+        ListItem::new(line)
+    }
+}
+
+impl From<&sig_date::Model> for ListItem<'_> {
+    fn from(value: &sig_date::Model) -> Self {
+        let line = match value.do_remind {
+            true => Line::styled(
+                format!(" ✓ {} {} {}", value.ppl_id, value.event, value.date),
+                WHITE,
+            ),
+            false => Line::styled(
+                format!(" ☐ {} {} {}", value.ppl_id, value.event, value.date),
+                SLATE.c500,
+            ),
         };
 
         ListItem::new(line)

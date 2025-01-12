@@ -25,6 +25,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Ppl::Name).string().not_null())
                     .col(ColumnDef::new(Ppl::Me).boolean().not_null())
+                    .col(ColumnDef::new(Ppl::Nick).string().not_null())
                     .col(ColumnDef::new(Ppl::DateIns).date().not_null())
                     .col(ColumnDef::new(Ppl::DateUp).date().not_null())
                     .to_owned(),
@@ -45,8 +46,8 @@ pub enum Ppl {
     Table,
     Id,
     Name,
-    Me, // boolean for self to wish you a happy bday
-
+    Me,   // boolean for self to wish you a happy bday
+    Nick, // default-alias
     DateIns,
     DateUp,
 }

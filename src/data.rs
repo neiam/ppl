@@ -13,7 +13,7 @@ use color_eyre::owo_colors::OwoColorize;
 use log::warn;
 use ratatui::style::palette::tailwind::PURPLE;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait, NotSet};
 
 fn bool_from_string(input: Option<String>) -> bool {
     if input.is_none() {
@@ -118,6 +118,7 @@ impl ContactOps {
                 am.designator = Set(designator);
                 am.r#type = Set(typ);
                 am.value = Set(value);
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }
@@ -128,13 +129,11 @@ impl ContactOps {
 pub struct PplOps {}
 
 impl PplOps {
-    pub async fn create_me(
-        db: &DatabaseConnection,
-        name: String,
-    ) -> Result<ppl::Model, PplError> {
+    pub async fn create_me(db: &DatabaseConnection, name: String) -> Result<ppl::Model, PplError> {
         let p = ppl::ActiveModel {
             id: Default::default(),
             name: Set(name),
+            nick: NotSet,
             me: Set(true),
             date_ins: Set(Local::today().naive_local()),
             date_up: Set(Local::today().naive_local()),
@@ -156,6 +155,7 @@ impl PplOps {
             id: Default::default(),
             name: Set(name),
             me: Set(false),
+            nick: NotSet,
             date_ins: Set(Local::today().naive_local()),
             date_up: Set(Local::today().naive_local()),
         };
@@ -190,6 +190,7 @@ impl PplOps {
                     None => {}
                     Some(i) => am.name = Set(i),
                 }
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }
@@ -247,7 +248,9 @@ impl RelationOps {
             None,
             option_naive_date_from_option_string(editable.second),
             option_naive_date_from_option_string(editable.third),
-        ).await.expect("huh");
+        )
+        .await
+        .expect("huh");
     }
 
     pub async fn update(
@@ -286,6 +289,7 @@ impl RelationOps {
                     Some(date) => am.date_ended = Set(Option::from(date)),
                 }
                 am.r#type = Set(typ);
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }
@@ -362,6 +366,7 @@ impl SigDateOps {
                 am.event = Set(event);
                 am.date = Set(date.unwrap_or_default());
                 am.do_remind = Set(do_remind);
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }
@@ -431,6 +436,7 @@ impl TierOps {
                 am.name = Set(name);
                 am.color = Set(color);
                 am.symbol = Set(symbol);
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }
@@ -506,6 +512,7 @@ impl TraitOps {
                     Some(j) => am.value = Set(j),
                 }
                 am.hidden = Set(hidden);
+                am.date_up = Set(Local::today().naive_local());
                 am.update(db).await?;
                 Ok(())
             }

@@ -115,16 +115,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
     match &args.relation {
         None => Ok(()),
         Some(relation) => {
-            RelationOps::create(
-                &db,
-                me.id,
-                pp.id,
-                relation.to_owned(),
-                false,
-                None,
-                None,
-            )
-            .await
+            RelationOps::create(&db, me.id, pp.id, relation.to_owned(), false, None, None).await
         }
     }?;
 
@@ -134,14 +125,8 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
             let date = parse_date_string(met, Local::now(), Dialect::Us);
             match date {
                 Ok(parsed) => {
-                    SigDateOps::create(
-                        &db,
-                        pp.id,
-                        parsed.date_naive(),
-                        "met".to_string(),
-                        false,
-                    )
-                    .await
+                    SigDateOps::create(&db, pp.id, parsed.date_naive(), "met".to_string(), false)
+                        .await
                 }
                 Err(e) => {
                     warn!("failed to parse metdate {:?}", e.red());
@@ -154,14 +139,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
     match &args.from {
         None => Ok(()),
         Some(from) => {
-            TraitOps::create(
-                &db,
-                pp.id,
-                "from".to_string(),
-                from.to_string(),
-                false,
-            )
-            .await
+            TraitOps::create(&db, pp.id, "from".to_string(), from.to_string(), false).await
         }
     }?;
 
