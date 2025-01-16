@@ -23,6 +23,18 @@ test:cargo:
     - rustc --version && cargo --version  # Print version info for debugging
     - cargo test --workspace --verbose
 
+# Use cargo to test the project
+test:clippy:
+  script:
+    - rustc --version && cargo --version  # Print version info for debugging
+    - cargo clippy
+
+# Use cargo to test the project
+test:fmt:
+  script:
+    - rustc --version && cargo --version  # Print version info for debugging
+    - cargo fmt --check
+
 # Optional: Use a third party library to generate gitlab junit reports
 test:junit-report:
   script:

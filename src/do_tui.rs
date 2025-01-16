@@ -16,7 +16,7 @@ use itertools::Itertools;
 use ratatui::prelude::{Constraint, Direction, Layout, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::style::palette::material::AMBER;
 use ratatui::style::palette::tailwind::{GREEN, ORANGE, PINK, SLATE, WHITE};
-use ratatui::style::{Color};
+use ratatui::style::Color;
 use ratatui::widgets::calendar::{CalendarEventStore, Monthly};
 use ratatui::widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
@@ -228,36 +228,27 @@ pub async fn run_tui(
                     KeyCode::Char('f') => {
                         default_editing_handler(&mut app, &key_event);
                     }
-                    KeyCode::Char('c') => {
-                        match app.current_tab {
-                            Tabs::Ppl => { app.ppl_show_contacts = !app.ppl_show_contacts }
-                            _ => {}
-                        }
-                    }
-                    KeyCode::Char('d') => {
-                        match app.current_tab {
-                            Tabs::Ppl => { app.ppl_show_dates = !app.ppl_show_dates }
-                            _ => {}
-                        }
-                    }
-                    KeyCode::Char('r') => {
-                        match app.current_tab {
-                            Tabs::Ppl => { app.ppl_show_traits = !app.ppl_show_traits }
-                            _ => {}
-                        }
-                    }
-                    KeyCode::Char('i') => {
-                        match app.current_tab {
-                            Tabs::Ppl => { app.ppl_show_tiers = !app.ppl_show_tiers }
-                            _ => {}
-                        }
-                    }
-                    KeyCode::Char('l') => {
-                        match app.current_tab {
-                            Tabs::Ppl => { app.ppl_show_relations = !app.ppl_show_relations }
-                            _ => {}
-                        }
-                    }
+                    KeyCode::Char('c') => match app.current_tab {
+                        Tabs::Ppl => app.ppl_show_contacts = !app.ppl_show_contacts,
+                        Tabs::Calendar => {}
+                        _ => {}
+                    },
+                    KeyCode::Char('d') => match app.current_tab {
+                        Tabs::Ppl => app.ppl_show_dates = !app.ppl_show_dates,
+                        _ => {}
+                    },
+                    KeyCode::Char('r') => match app.current_tab {
+                        Tabs::Ppl => app.ppl_show_traits = !app.ppl_show_traits,
+                        _ => {}
+                    },
+                    KeyCode::Char('i') => match app.current_tab {
+                        Tabs::Ppl => app.ppl_show_tiers = !app.ppl_show_tiers,
+                        _ => {}
+                    },
+                    KeyCode::Char('l') => match app.current_tab {
+                        Tabs::Ppl => app.ppl_show_relations = !app.ppl_show_relations,
+                        _ => {}
+                    },
                     KeyCode::Enter => {
                         if app.current_tab == Tabs::Ppl {
                             if app.ppl_editing && app.ppl_detail_state.selected().is_some() {
@@ -390,7 +381,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                 Constraint::Percentage(100),
                 Constraint::Length(1),
             ]
-                .as_ref(),
+            .as_ref(),
         )
         .split(f.area());
 
@@ -442,41 +433,72 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         Span::raw(" to edit the selected ppl. "),
                     ];
                     if app.ppl_show_contacts {
-                        msgw.push(Span::styled("C", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                        msgw.push(Span::styled(
+                            "C",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ));
                     } else {
-                        msgw.push(Span::styled("C", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                        msgw.push(Span::styled(
+                            "C",
+                            Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500),
+                        ));
                     }
                     msgw.push(Span::raw("/"));
 
                     if app.ppl_show_dates {
-                        msgw.push(Span::styled("D", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                        msgw.push(Span::styled(
+                            "D",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ));
                     } else {
-                        msgw.push(Span::styled("D", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                        msgw.push(Span::styled(
+                            "D",
+                            Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500),
+                        ));
                     }
                     msgw.push(Span::raw("/"));
 
                     if app.ppl_show_traits {
-                        msgw.push(Span::styled("R", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                        msgw.push(Span::styled(
+                            "R",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ));
                     } else {
-                        msgw.push(Span::styled("R", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                        msgw.push(Span::styled(
+                            "R",
+                            Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500),
+                        ));
                     }
                     msgw.push(Span::raw("/"));
 
                     if app.ppl_show_tiers {
-                        msgw.push(Span::styled("I", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                        msgw.push(Span::styled(
+                            "I",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ));
                     } else {
-                        msgw.push(Span::styled("I", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                        msgw.push(Span::styled(
+                            "I",
+                            Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500),
+                        ));
                     }
                     msgw.push(Span::raw("/"));
 
                     if app.ppl_show_relations {
-                        msgw.push(Span::styled("L", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                        msgw.push(Span::styled(
+                            "L",
+                            Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                        ));
                     } else {
-                        msgw.push(Span::styled("L", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                        msgw.push(Span::styled(
+                            "L",
+                            Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500),
+                        ));
                     }
 
-
-                    msgw.push(Span::raw(" to toggle Contacts/Dates/tRaits/tIers/reLations"));
+                    msgw.push(Span::raw(
+                        " to toggle Contacts/Dates/tRaits/tIers/reLations",
+                    ));
 
                     let textw = Text::from(Line::from(msgw)).style(Style::default());
                     let welcome = Paragraph::new(textw);
@@ -726,7 +748,9 @@ fn render(f: &mut Frame, app: &mut Tui) {
                                 id: t.id,
                                 tgt: Editablez::Contact,
                                 first: t.r#type.clone(),
-                                second: Option::from(t.designator.clone().unwrap_or("".to_string())),
+                                second: Option::from(
+                                    t.designator.clone().unwrap_or("".to_string()),
+                                ),
                                 third: Option::from(t.value.clone()),
                             });
 
@@ -958,7 +982,8 @@ fn render(f: &mut Frame, app: &mut Tui) {
                 .iter()
                 .map(|d| {
                     let mut n = d.clone();
-                    n.date = NaiveDate::from_ymd_opt(start.year(), n.date.month(), n.date.day()).unwrap();
+                    n.date = NaiveDate::from_ymd_opt(start.year(), n.date.month(), n.date.day())
+                        .unwrap();
                     let p = app
                         .ppl_list
                         .iter()
@@ -994,7 +1019,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         Month::try_from(u.date.date.month() as u8).expect("oops"),
                         u.date.date.day() as u8,
                     )
-                        .expect("doubleoops"),
+                    .expect("doubleoops"),
                     Style::default()
                         .add_modifier(Modifier::BOLD)
                         .fg(GREEN.c300)
@@ -1097,53 +1122,52 @@ struct SigDateAndProps {
 impl From<PplAndProps> for ListItem<'_> {
     fn from(value: PplAndProps) -> Self {
         // value.date_up;
-        let line = match value.ppl.me {
-            true => Line::styled(
-                format!(" 🌟 {}", value.ppl.nick.unwrap_or(value.ppl.name)),
-                WHITE,
-            ),
-            false => match value.tiers.len() {
-                0 => Line::styled(
-                    format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+        let line =
+            match value.ppl.me {
+                true => Line::styled(
+                    format!(" 🌟 {}", value.ppl.nick.unwrap_or(value.ppl.name)),
                     WHITE,
                 ),
-                _ => {
-                    let t = value.tiers.first().unwrap();
-                    match value.tier_defaults.iter().find(|q| q.key == t.name) {
-                        None => Line::styled(
-                            format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
-                            WHITE,
-                        ),
-                        Some(tierd) => match t.symbol.clone().unwrap_or("".to_string()).as_str() {
-                            "" => Line::styled(
-                                format!(
-                                    " {} {}",
-                                    tierd.symbol.clone().unwrap_or("".to_string()),
-                                    value.ppl.nick.unwrap_or(value.ppl.name)
-                                ),
-                                lcolor(
-                                    &t.color
-                                        .clone()
-                                        .unwrap_or(tierd.color.clone().unwrap_or("".to_string())),
-                                ),
+                false => match value.tiers.len() {
+                    0 => Line::styled(
+                        format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+                        WHITE,
+                    ),
+                    _ => {
+                        let t = value.tiers.first().unwrap();
+                        match value.tier_defaults.iter().find(|q| q.key == t.name) {
+                            None => Line::styled(
+                                format!("   {}", value.ppl.nick.unwrap_or(value.ppl.name)),
+                                WHITE,
                             ),
-                            otherwise => Line::styled(
-                                format!(
-                                    " {} {}",
-                                    otherwise,
-                                    value.ppl.nick.unwrap_or(value.ppl.name)
-                                ),
-                                lcolor(
-                                    &t.color
-                                        .clone()
-                                        .unwrap_or(tierd.color.clone().unwrap_or("".to_string())),
-                                ),
-                            ),
-                        },
+                            Some(tierd) => {
+                                match t.symbol.clone().unwrap_or("".to_string()).as_str() {
+                                    "" => Line::styled(
+                                        format!(
+                                            " {} {}",
+                                            tierd.symbol.clone().unwrap_or("".to_string()),
+                                            value.ppl.nick.unwrap_or(value.ppl.name)
+                                        ),
+                                        lcolor(&t.color.clone().unwrap_or(
+                                            tierd.color.clone().unwrap_or("".to_string()),
+                                        )),
+                                    ),
+                                    otherwise => Line::styled(
+                                        format!(
+                                            " {} {}",
+                                            otherwise,
+                                            value.ppl.nick.unwrap_or(value.ppl.name)
+                                        ),
+                                        lcolor(&t.color.clone().unwrap_or(
+                                            tierd.color.clone().unwrap_or("".to_string()),
+                                        )),
+                                    ),
+                                }
+                            }
+                        }
                     }
-                }
-            },
-        };
+                },
+            };
         ListItem::new(line)
     }
 }
@@ -1156,9 +1180,10 @@ impl From<&SigDateAndProps> for ListItem<'_> {
             .iter()
             .find(|q| q.key == value.date.event && q.is_date == true);
         let line = match (value.date.do_remind, default) {
-            (true, Some(t)) => {
-                Line::styled(format!(" ✓ {} {:6} {}", t.symbol, n, value.date.date), WHITE)
-            }
+            (true, Some(t)) => Line::styled(
+                format!(" ✓ {} {:6} {}", t.symbol, n, value.date.date),
+                WHITE,
+            ),
             (true, None) => Line::styled(
                 format!(" ✓ 📅 {:6} {} ({})", n, value.date.date, value.date.event),
                 WHITE,
@@ -1192,7 +1217,10 @@ impl From<&ppl::Model> for ListItem<'_> {
 impl From<&tier_defaults::Model> for ListItem<'_> {
     fn from(value: &tier_defaults::Model) -> Self {
         let line = match value.enabled {
-            true => Line::styled(format!(" ✓ {:?} {}", value.symbol, value.key), lcolor(&value.color.clone().unwrap_or("".to_string()))),
+            true => Line::styled(
+                format!(" ✓ {:?} {}", value.symbol, value.key),
+                lcolor(&value.color.clone().unwrap_or("".to_string())),
+            ),
             false => Line::styled(format!(" ☐ {:?} {}", value.symbol, value.key), SLATE.c500),
         };
 
@@ -1202,7 +1230,10 @@ impl From<&tier_defaults::Model> for ListItem<'_> {
 impl From<&trait_defaults::Model> for ListItem<'_> {
     fn from(value: &trait_defaults::Model) -> Self {
         let line = match value.enabled {
-            true => Line::styled(format!(" ✓ {} {}", value.symbol, value.key), lcolor(&value.color)),
+            true => Line::styled(
+                format!(" ✓ {} {}", value.symbol, value.key),
+                lcolor(&value.color),
+            ),
             false => Line::styled(format!(" ☐ {} {}", value.symbol, value.key), SLATE.c500),
         };
 
