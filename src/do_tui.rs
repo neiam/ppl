@@ -44,6 +44,11 @@ struct Tui {
     ppl_input_b: Input,
     ppl_input_c: Input,
     ppl_detail_state: ListState,
+    ppl_show_contacts: bool,
+    ppl_show_dates: bool,
+    ppl_show_traits: bool,
+    ppl_show_tiers: bool,
+    ppl_show_relations: bool,
     def_tier_list: Vec<tier_defaults::Model>,
     def_tier_state: ListState,
     def_trait_list: Vec<trait_defaults::Model>,
@@ -129,6 +134,11 @@ impl Default for Tui {
             ppl_input_b: Input::default(),
             ppl_input_c: Input::default(),
             ppl_detail_state: ListState::default(),
+            ppl_show_contacts: true,
+            ppl_show_dates: true,
+            ppl_show_traits: true,
+            ppl_show_tiers: true,
+            ppl_show_relations: true,
             def_tier_list: vec![],
             def_tier_state: ListState::default(),
             def_trait_list: vec![],
@@ -217,6 +227,36 @@ pub async fn run_tui(
                     }
                     KeyCode::Char('f') => {
                         default_editing_handler(&mut app, &key_event);
+                    }
+                    KeyCode::Char('c') => {
+                        match app.current_tab {
+                            Tabs::Ppl => { app.ppl_show_contacts = !app.ppl_show_contacts }
+                            _ => {}
+                        }
+                    }
+                    KeyCode::Char('d') => {
+                        match app.current_tab {
+                            Tabs::Ppl => { app.ppl_show_dates = !app.ppl_show_dates }
+                            _ => {}
+                        }
+                    }
+                    KeyCode::Char('r') => {
+                        match app.current_tab {
+                            Tabs::Ppl => { app.ppl_show_traits = !app.ppl_show_traits }
+                            _ => {}
+                        }
+                    }
+                    KeyCode::Char('i') => {
+                        match app.current_tab {
+                            Tabs::Ppl => { app.ppl_show_tiers = !app.ppl_show_tiers }
+                            _ => {}
+                        }
+                    }
+                    KeyCode::Char('l') => {
+                        match app.current_tab {
+                            Tabs::Ppl => { app.ppl_show_relations = !app.ppl_show_relations }
+                            _ => {}
+                        }
                     }
                     KeyCode::Enter => {
                         if app.current_tab == Tabs::Ppl {
@@ -350,7 +390,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                 Constraint::Percentage(100),
                 Constraint::Length(1),
             ]
-            .as_ref(),
+                .as_ref(),
         )
         .split(f.area());
 
@@ -387,12 +427,12 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     f.render_widget(welcome, chunks[2]);
                 }
                 false => {
-                    let msgw = vec![
+                    let mut msgw = vec![
                         Span::styled(
                             "Tab",
                             Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
                         ),
-                        Span::raw(" to switch views"),
+                        Span::raw(" to switch views. "),
                         Span::styled(
                             "Enter",
                             Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
@@ -401,6 +441,43 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         Span::styled("E", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)),
                         Span::raw(" to edit the selected ppl. "),
                     ];
+                    if app.ppl_show_contacts {
+                        msgw.push(Span::styled("C", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                    } else {
+                        msgw.push(Span::styled("C", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                    }
+                    msgw.push(Span::raw("/"));
+
+                    if app.ppl_show_dates {
+                        msgw.push(Span::styled("D", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                    } else {
+                        msgw.push(Span::styled("D", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                    }
+                    msgw.push(Span::raw("/"));
+
+                    if app.ppl_show_traits {
+                        msgw.push(Span::styled("R", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                    } else {
+                        msgw.push(Span::styled("R", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                    }
+                    msgw.push(Span::raw("/"));
+
+                    if app.ppl_show_tiers {
+                        msgw.push(Span::styled("I", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                    } else {
+                        msgw.push(Span::styled("I", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                    }
+                    msgw.push(Span::raw("/"));
+
+                    if app.ppl_show_relations {
+                        msgw.push(Span::styled("L", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)));
+                    } else {
+                        msgw.push(Span::styled("L", Style::default().add_modifier(Modifier::BOLD).fg(SLATE.c500)));
+                    }
+
+
+                    msgw.push(Span::raw(" to toggle Contacts/Dates/tRaits/tIers/reLations"));
+
                     let textw = Text::from(Line::from(msgw)).style(Style::default());
                     let welcome = Paragraph::new(textw);
                     f.render_widget(welcome, chunks[2]);
@@ -475,29 +552,31 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .iter()
                         .filter(|t| !t.is_date && !t.is_contact)
                         .collect::<Vec<&trait_defaults::Model>>();
-                    for t in &curr_traits {
-                        editables.push(Editable {
-                            tgt: Editablez::Trait,
-                            id: t.id,
-                            first: t.key.clone(),
-                            second: Option::from(t.value.clone()),
-                            third: t.hidden.clone().to_string().into(),
-                        });
-                        match trait_defaults.iter().find(|f| f.key == t.key) {
-                            None => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("ℹ️ {}: ", t.key.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.value.clone()),
-                            ])),
-                            Some(td) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("{} {}: ", td.symbol, t.key.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.value.clone()),
-                            ])),
+                    if app.ppl_show_traits {
+                        for t in &curr_traits {
+                            editables.push(Editable {
+                                tgt: Editablez::Trait,
+                                id: t.id,
+                                first: t.key.clone(),
+                                second: Option::from(t.value.clone()),
+                                third: t.hidden.clone().to_string().into(),
+                            });
+                            match trait_defaults.iter().find(|f| f.key == t.key) {
+                                None => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("ℹ️ {}: ", t.key.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.value.clone()),
+                                ])),
+                                Some(td) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("{} {}: ", td.symbol, t.key.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.value.clone()),
+                                ])),
+                            }
                         }
                     }
 
@@ -508,49 +587,51 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .map(|t| t.to_owned())
                         .collect::<Vec<tier::Model>>();
 
-                    for t in &curr_tiers {
-                        let othersym = app.def_tier_list.iter().find(|dt| dt.key == t.name);
-                        editables.push(Editable {
-                            id: t.id,
-                            tgt: Editablez::Tier,
-                            first: t.name.clone(),
-                            second: t.color.clone(),
-                            third: t.symbol.clone(),
-                        });
-                        match (&t.symbol, othersym) {
-                            (None, Some(other)) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!(
-                                        "{} {}: ",
-                                        &other.symbol.clone().unwrap(),
-                                        t.name.clone()
+                    if app.ppl_show_tiers {
+                        for t in &curr_tiers {
+                            let othersym = app.def_tier_list.iter().find(|dt| dt.key == t.name);
+                            editables.push(Editable {
+                                id: t.id,
+                                tgt: Editablez::Tier,
+                                first: t.name.clone(),
+                                second: t.color.clone(),
+                                third: t.symbol.clone(),
+                            });
+                            match (&t.symbol, othersym) {
+                                (None, Some(other)) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!(
+                                            "{} {}: ",
+                                            &other.symbol.clone().unwrap(),
+                                            t.name.clone()
+                                        ),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
                                     ),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.name.clone()),
-                            ])),
-                            (Some(main), None) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("{} {}: ", main, t.name.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.name.clone()),
-                            ])),
-                            (None, None) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("ℹ️ {}: ", t.name.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.name.clone()),
-                            ])),
-                            // _ => {}
-                            (Some(main), Some(_other)) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("{} {}: ", main, t.name.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.name.clone()),
-                            ])),
+                                    Span::raw(t.name.clone()),
+                                ])),
+                                (Some(main), None) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("{} {}: ", main, t.name.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.name.clone()),
+                                ])),
+                                (None, None) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("ℹ️ {}: ", t.name.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.name.clone()),
+                                ])),
+                                // _ => {}
+                                (Some(main), Some(_other)) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("{} {}: ", main, t.name.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.name.clone()),
+                                ])),
+                            }
                         }
                     }
 
@@ -560,24 +641,26 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .filter(|t| t.ppl_id_b == curr.id)
                         .map(|t| t.to_owned())
                         .collect::<Vec<relation::Model>>();
-                    for t in &curr_rels {
-                        let i2 = t.date_entered.map(|d| d.to_string());
-                        let i3 = t.date_ended.map(|d| d.to_string());
-                        editables.push(Editable {
-                            id: t.id,
-                            tgt: Editablez::Relation,
-                            first: t.r#type.clone(),
-                            second: i2,
-                            third: i3,
-                        });
+                    if app.ppl_show_relations {
+                        for t in &curr_rels {
+                            let i2 = t.date_entered.map(|d| d.to_string());
+                            let i3 = t.date_ended.map(|d| d.to_string());
+                            editables.push(Editable {
+                                id: t.id,
+                                tgt: Editablez::Relation,
+                                first: t.r#type.clone(),
+                                second: i2,
+                                third: i3,
+                            });
 
-                        msgs.push(Line::from(vec![
-                            Span::styled(
-                                format!("🫂 {}: ", t.r#type.clone()),
-                                Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                            ),
-                            Span::raw(format!("{:?} - {:?}", t.date_entered, t.date_ended)),
-                        ]))
+                            msgs.push(Line::from(vec![
+                                Span::styled(
+                                    format!("🫂 {}: ", t.r#type.clone()),
+                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                ),
+                                Span::raw(format!("{:?} - {:?}", t.date_entered, t.date_ended)),
+                            ]))
+                        }
                     }
 
                     let curr_dates = app
@@ -591,36 +674,38 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .iter()
                         .filter(|t| t.is_date && t.enabled)
                         .collect::<Vec<&trait_defaults::Model>>();
-                    for t in &curr_dates {
-                        editables.push(Editable {
-                            id: t.id,
-                            tgt: Editablez::SigDate,
-                            first: t.event.clone(),
-                            second: Option::from(t.date.to_string()),
-                            third: Option::from(t.do_remind.to_string()),
-                        });
-                        match (date_traits.iter().find(|f| f.key == t.event), t.do_remind) {
-                            (Some(dt), _) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("{} {}: ", dt.symbol, t.event.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.date.clone().to_string()),
-                            ])),
-                            (None, true) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("⏰ {}: ", t.event.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.date.clone().to_string()),
-                            ])),
-                            (None, false) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("📅 {}: ", t.event.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.date.clone().to_string()),
-                            ])),
+                    if app.ppl_show_dates {
+                        for t in &curr_dates {
+                            editables.push(Editable {
+                                id: t.id,
+                                tgt: Editablez::SigDate,
+                                first: t.event.clone(),
+                                second: Option::from(t.date.to_string()),
+                                third: Option::from(t.do_remind.to_string()),
+                            });
+                            match (date_traits.iter().find(|f| f.key == t.event), t.do_remind) {
+                                (Some(dt), _) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("{} {}: ", dt.symbol, t.event.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.date.clone().to_string()),
+                                ])),
+                                (None, true) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("⏰ {}: ", t.event.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.date.clone().to_string()),
+                                ])),
+                                (None, false) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("📅 {}: ", t.event.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.date.clone().to_string()),
+                                ])),
+                            }
                         }
                     }
 
@@ -635,30 +720,32 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         .iter()
                         .filter(|t| t.is_contact && t.enabled)
                         .collect::<Vec<&trait_defaults::Model>>();
-                    for t in &contacts {
-                        editables.push(Editable {
-                            id: t.id,
-                            tgt: Editablez::Contact,
-                            first: t.r#type.clone(),
-                            second: Option::from(t.designator.clone().unwrap_or("".to_string())),
-                            third: Option::from(t.value.clone()),
-                        });
+                    if app.ppl_show_contacts {
+                        for t in &contacts {
+                            editables.push(Editable {
+                                id: t.id,
+                                tgt: Editablez::Contact,
+                                first: t.r#type.clone(),
+                                second: Option::from(t.designator.clone().unwrap_or("".to_string())),
+                                third: Option::from(t.value.clone()),
+                            });
 
-                        match contact_traits.iter().find(|f| f.key == t.r#type) {
-                            Some(dt) => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("{} {}: ", dt.symbol, t.r#type.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.value.clone().to_string()),
-                            ])),
-                            None => msgs.push(Line::from(vec![
-                                Span::styled(
-                                    format!("📇 {}: ", t.r#type.clone()),
-                                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
-                                ),
-                                Span::raw(t.value.clone().to_string()),
-                            ])),
+                            match contact_traits.iter().find(|f| f.key == t.r#type) {
+                                Some(dt) => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("{} {}: ", dt.symbol, t.r#type.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.value.clone().to_string()),
+                                ])),
+                                None => msgs.push(Line::from(vec![
+                                    Span::styled(
+                                        format!("📇 {}: ", t.r#type.clone()),
+                                        Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                                    ),
+                                    Span::raw(t.value.clone().to_string()),
+                                ])),
+                            }
                         }
                     }
 
@@ -899,7 +986,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     .bg(Color::Blue),
             );
 
-            for u in as_upcoming {
+            for u in as_upcoming.into_iter().filter(|d| d.date.do_remind == true) {
                 event_list.add(
                     // Date::from_calendar_date(start.year(), Month::try_from(4 as u8).expect("oops"), 15 as u8).expect("doubleoops"),
                     Date::from_calendar_date(
@@ -907,7 +994,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         Month::try_from(u.date.date.month() as u8).expect("oops"),
                         u.date.date.day() as u8,
                     )
-                    .expect("doubleoops"),
+                        .expect("doubleoops"),
                     Style::default()
                         .add_modifier(Modifier::BOLD)
                         .fg(GREEN.c300)
@@ -953,6 +1040,21 @@ fn render(f: &mut Frame, app: &mut Tui) {
             //     .margin(0)
             //     .constraints([Constraint::Percentage(25), Constraint::Percentage(75)])
             //     .split(chunks[1]);
+
+            let msgw = vec![
+                Span::styled(
+                    "Tab",
+                    Style::default().add_modifier(Modifier::BOLD).fg(WHITE),
+                ),
+                Span::raw(" to switch views. "),
+                Span::styled("E", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)),
+                Span::raw(" to edit the enabled tiers. "),
+                Span::styled("C", Style::default().add_modifier(Modifier::BOLD).fg(WHITE)),
+                Span::raw(" to enable/disable the various builtin calendars. "),
+            ];
+            let textw = Text::from(Line::from(msgw)).style(Style::default());
+            let welcome = Paragraph::new(textw);
+            f.render_widget(welcome, chunks[2]);
         }
         Tabs::TierSettings => {
             let ppl = List::new(&app.def_tier_list)
