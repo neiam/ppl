@@ -26,12 +26,14 @@ test:cargo:
 # Use cargo to test the project
 test:clippy:
   script:
+    - rustup component add clippy
     - rustc --version && cargo --version  # Print version info for debugging
     - cargo clippy
 
 # Use cargo to test the project
 test:fmt:
   script:
+    - rustup component add fmt
     - rustc --version && cargo --version  # Print version info for debugging
     - cargo fmt --check
 
