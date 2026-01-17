@@ -381,6 +381,7 @@ impl TierOps {
         db: &DatabaseConnection,
         ppl_id: i32,
         tier: String,
+        sig_date_delta: Option<u32>
     ) -> Result<(), PplError> {
         let t = tier::ActiveModel {
             id: Default::default(),
@@ -390,6 +391,7 @@ impl TierOps {
             symbol: Default::default(),
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
+            sig_date_delta: Set(sig_date_delta),
         };
         let tt = t.insert(db).await;
         match tt {
@@ -530,6 +532,7 @@ impl TierDefaultOps {
         enabled: bool,
         color: String,
         symbol: String,
+        sig_date_delta: Option<u32>
     ) -> Result<(), PplError> {
         let t = tier_defaults::ActiveModel {
             id: Default::default(),
@@ -540,6 +543,7 @@ impl TierDefaultOps {
             symbol: Set(Option::from(symbol)),
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
+            sig_date_delta: Set(sig_date_delta)
         };
         let tt = t.insert(db).await;
         match tt {

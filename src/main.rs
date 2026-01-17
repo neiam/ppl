@@ -117,7 +117,9 @@ async fn main() -> Result<(), PplError> {
             println!("ppl");
             // show().expect("failed2draw")
         }
-        Some(Commands::MOTD { .. }) => {}
+        Some(Commands::MOTD { .. }) => {
+
+        }
         Some(Commands::Init { .. }) => match is_init {
             false => {
                 info!("Uninitialized");

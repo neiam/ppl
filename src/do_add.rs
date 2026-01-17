@@ -38,7 +38,7 @@ pub async fn do_add(args: &AddArgs, db: DatabaseConnection) -> Result<(), PplErr
 
     match &args.tier {
         None => Ok(()),
-        Some(tier) => TierOps::create(&db, pp.id, tier.clone()).await,
+        Some(tier) => TierOps::create(&db, pp.id, tier.clone(), None).await,
     }?;
     match &args.phone {
         None => Ok(()),

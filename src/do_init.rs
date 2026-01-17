@@ -552,6 +552,7 @@ pub async fn run_init(
                                             symbol: Default::default(),
                                             date_ins: Set(Local::now().date_naive()),
                                             date_up: Set(Local::now().date_naive()),
+                                            sig_date_delta: Default::default(),
                                         })
                                         .collect::<Vec<tier_defaults::ActiveModel>>();
 
