@@ -232,25 +232,13 @@ pub async fn run_tui(
                         Tabs::Calendar => {}
                         _ => {}
                     },
-                    KeyCode::Char('d') => match app.current_tab {
-                        Tabs::Ppl => app.ppl_show_dates = !app.ppl_show_dates,
-                        _ => {}
-                    },
-                    KeyCode::Char('r') => match app.current_tab {
-                        Tabs::Ppl => app.ppl_show_traits = !app.ppl_show_traits,
-                        _ => {}
-                    },
-                    KeyCode::Char('i') => match app.current_tab {
-                        Tabs::Ppl => app.ppl_show_tiers = !app.ppl_show_tiers,
-                        _ => {}
-                    },
-                    KeyCode::Char('l') => match app.current_tab {
-                        Tabs::Ppl => app.ppl_show_relations = !app.ppl_show_relations,
-                        _ => {}
-                    },
+                    KeyCode::Char('d') => if app.current_tab == Tabs::Ppl { app.ppl_show_dates = !app.ppl_show_dates },
+                    KeyCode::Char('r') => if app.current_tab == Tabs::Ppl { app.ppl_show_traits = !app.ppl_show_traits },
+                    KeyCode::Char('i') => if app.current_tab == Tabs::Ppl { app.ppl_show_tiers = !app.ppl_show_tiers },
+                    KeyCode::Char('l') => if app.current_tab == Tabs::Ppl { app.ppl_show_relations = !app.ppl_show_relations },
                     KeyCode::Enter => {
-                        if app.current_tab == Tabs::Ppl {
-                            if app.ppl_editing && app.ppl_detail_state.selected().is_some() {
+                        if app.current_tab == Tabs::Ppl
+                            && app.ppl_editing && app.ppl_detail_state.selected().is_some() {
                                 let idx = &app.ppl_detail_state.selected().unwrap();
                                 let e = app.ppl_editables.get(*idx).unwrap();
                                 if !app.ppl_field_editing {
@@ -290,7 +278,6 @@ pub async fn run_tui(
                                 }
                                 app.ppl_field_editing = !app.ppl_field_editing;
                             }
-                        }
                     }
                     _ => {
                         default_editing_handler(&mut app, &key_event);
@@ -949,7 +936,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                         false => {
                             let title = match &curr.nick {
                                 None => {
-                                    format!("{}", curr.name.clone())
+                                    curr.name.clone().to_string()
                                 }
                                 Some(n) => {
                                     format!("{} ({})", curr.name.clone(), n)
@@ -1010,7 +997,7 @@ fn render(f: &mut Frame, app: &mut Tui) {
                     .bg(Color::Blue),
             );
 
-            for u in as_upcoming.into_iter().filter(|d| d.date.do_remind == true) {
+            for u in as_upcoming.iter().filter(|d| d.date.do_remind) {
                 event_list.add(
                     // Date::from_calendar_date(start.year(), Month::try_from(4 as u8).expect("oops"), 15 as u8).expect("doubleoops"),
                     Date::from_calendar_date(
@@ -1177,7 +1164,7 @@ impl From<&SigDateAndProps> for ListItem<'_> {
         let default = value
             .trait_defaults
             .iter()
-            .find(|q| q.key == value.date.event && q.is_date == true);
+            .find(|q| q.key == value.date.event && q.is_date);
         let line = match (value.date.do_remind, default) {
             (true, Some(t)) => Line::styled(
                 format!(" ✓ {} {:6} {}", t.symbol, n, value.date.date),
@@ -1204,7 +1191,6 @@ impl From<&SigDateAndProps> for ListItem<'_> {
 
 impl From<&ppl::Model> for ListItem<'_> {
     fn from(value: &Model) -> Self {
-        value.date_up;
         let line = match value.me {
             true => Line::styled(format!(" 🌟 {}", value.name), WHITE),
             false => Line::styled(format!("   {}", value.name), WHITE),

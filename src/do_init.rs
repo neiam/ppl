@@ -837,8 +837,7 @@ fn render(f: &mut Frame, app: &mut Init) {
     let messages_v: Vec<ListItem> = messages
         .iter()
         .filter(|(_t, i)| **i != "".to_string())
-        .enumerate()
-        .map(|(_i, (t, m))| {
+        .map(|(t, m)| {
             let content = vec![Line::from(vec![
                 Span::styled(t, Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(format!(": {}", m)),

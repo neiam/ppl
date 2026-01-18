@@ -84,7 +84,7 @@ enum Commands {
     Show,
     /// Tiers
     Tiers,
-    ///
+    /// Traits
     Traits,
     /// Stats
     Stats,
@@ -117,10 +117,10 @@ async fn main() -> Result<(), PplError> {
             println!("ppl");
             // show().expect("failed2draw")
         }
-        Some(Commands::MOTD { .. }) => {
+        Some(Commands::MOTD) => {
             motd(&db).await?;
         }
-        Some(Commands::Init { .. }) => match is_init {
+        Some(Commands::Init) => match is_init {
             false => {
                 info!("Uninitialized");
 
@@ -145,7 +145,7 @@ async fn main() -> Result<(), PplError> {
             drop(result);
         }
         Some(Commands::Calendar) => {}
-        Some(Commands::Show {}) => match is_init {
+        Some(Commands::Show) => match is_init {
             true => {
                 let ppl = Ppl::find().all(&db).await?;
                 for p in ppl {
@@ -209,7 +209,7 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
     let people = Ppl::find().all(db).await?;
     debug!("DEBUG: Found {} people", people.len());
 
-    for mut person in people {
+    for person in people {
         // Get all sigdates for this person
         let sigdates = SigDate::find()
             .filter(entities::sig_date::Column::PplId.eq(person.id))
