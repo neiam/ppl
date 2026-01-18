@@ -196,6 +196,7 @@ enum MotdRemindEnum {
     OnceHourly,   // Only once per hour, resetting at the top of the hour
     Randomly(u8), // Will show this motd person randomly u8% every run
     Always,       // Will always show this person's upcoming
+    Never,        // Never show this person's upcoming
 }
 
 async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {

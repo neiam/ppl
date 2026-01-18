@@ -318,7 +318,6 @@ pub async fn run_init(
                                 app.of_ppl = app
                                     .input
                                     .value()
-                                    .to_string()
                                     .split(",")
                                     .map(|s| s.trim().to_string())
                                     .collect::<Vec<String>>();
@@ -330,7 +329,6 @@ pub async fn run_init(
                             app.with_ppl = app
                                 .input
                                 .value()
-                                .to_string()
                                 .split(",")
                                 .map(|s| s.trim().to_string())
                                 .collect::<Vec<String>>();
