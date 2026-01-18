@@ -17,11 +17,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(TierDefaults::Table)
-                    .add_column(
-                        ColumnDef::new(TierDefaults::SigDateDelta)
-                            .unsigned()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(TierDefaults::SigDateDelta).unsigned().null())
                     .to_owned(),
             )
             .await?;
@@ -30,11 +26,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(TierDefaults::Table)
-                    .add_column(
-                        ColumnDef::new(TierDefaults::SigRemindEnum)
-                            .string()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(TierDefaults::SigRemindEnum).string().null())
                     .to_owned(),
             )
             .await

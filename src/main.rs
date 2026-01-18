@@ -192,10 +192,10 @@ async fn main() -> Result<(), PplError> {
 }
 
 enum MotdRemindEnum {
-    OnlyOnce, // Default, Only the first time the motd is run that day
-    OnceHourly, // Only once per hour, resetting at the top of the hour
+    OnlyOnce,     // Default, Only the first time the motd is run that day
+    OnceHourly,   // Only once per hour, resetting at the top of the hour
     Randomly(u8), // Will show this motd person randomly u8% every run
-    Always, // Will always show this person's upcoming
+    Always,       // Will always show this person's upcoming
 }
 
 async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
@@ -216,7 +216,11 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
             .all(db)
             .await?;
 
-        debug!("DEBUG: Person '{}' has {} sigdates", person.name, sigdates.len());
+        debug!(
+            "DEBUG: Person '{}' has {} sigdates",
+            person.name,
+            sigdates.len()
+        );
 
         // Get all tiers for this person
         let person_tiers = Tier::find()
@@ -224,7 +228,11 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
             .all(db)
             .await?;
 
-        debug!("DEBUG: Person '{}' has {} tiers", person.name, person_tiers.len());
+        debug!(
+            "DEBUG: Person '{}' has {} tiers",
+            person.name,
+            person_tiers.len()
+        );
 
         // Determine the remind enum for this person (default to OnlyOnce if null)
         // Also get the tier color and symbol for display
@@ -250,33 +258,42 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
 
         // Check if we should show this person based on remind_enum (default OnlyOnce)
         // If remind_enum is null or "OnlyOnce", check if we've shown them today
-        let should_show = if remind_enum_value.is_none() || remind_enum_value.as_deref() == Some("OnlyOnce") {
-            // Check meta field for last_reminded date
-            if let Some(meta_json) = &person.meta {
-                if let Some(last_reminded) = meta_json.get("last_reminded") {
-                    if let Some(last_reminded_str) = last_reminded.as_str() {
-                        if let Ok(last_reminded_date) = NaiveDate::parse_from_str(last_reminded_str, "%Y-%m-%d") {
-                            debug!("DEBUG: Person '{}' was last reminded on {}", person.name, last_reminded_date);
-                            // Only show if last reminded was before today
-                            last_reminded_date < today
+        let should_show =
+            if remind_enum_value.is_none() || remind_enum_value.as_deref() == Some("OnlyOnce") {
+                // Check meta field for last_reminded date
+                if let Some(meta_json) = &person.meta {
+                    if let Some(last_reminded) = meta_json.get("last_reminded") {
+                        if let Some(last_reminded_str) = last_reminded.as_str() {
+                            if let Ok(last_reminded_date) =
+                                NaiveDate::parse_from_str(last_reminded_str, "%Y-%m-%d")
+                            {
+                                debug!(
+                                    "DEBUG: Person '{}' was last reminded on {}",
+                                    person.name, last_reminded_date
+                                );
+                                // Only show if last reminded was before today
+                                last_reminded_date < today
+                            } else {
+                                true // Invalid date format, show anyway
+                            }
                         } else {
-                            true // Invalid date format, show anyway
+                            true // Not a string, show anyway
                         }
                     } else {
-                        true // Not a string, show anyway
+                        true // No last_reminded field, show
                     }
                 } else {
-                    true // No last_reminded field, show
+                    true // No meta, show
                 }
             } else {
-                true // No meta, show
-            }
-        } else {
-            true // Other remind modes not yet implemented, show for now
-        };
+                true // Other remind modes not yet implemented, show for now
+            };
 
         if !should_show {
-            debug!("DEBUG: Skipping person '{}' - already shown today", person.name);
+            debug!(
+                "DEBUG: Skipping person '{}' - already shown today",
+                person.name
+            );
             continue;
         }
 
@@ -295,12 +312,18 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
         debug!("DEBUG: Found {} date trait defaults", trait_defaults.len());
 
         for sigdate in sigdates {
-            debug!("DEBUG: Processing sigdate: {} on {}", sigdate.event, sigdate.date);
+            debug!(
+                "DEBUG: Processing sigdate: {} on {}",
+                sigdate.event, sigdate.date
+            );
             let mut tier_delta: Option<u32> = None;
 
             // First check person's assigned tiers
             for tier in &person_tiers {
-                debug!("DEBUG: Checking tier '{}' with delta {:?}", tier.name, tier.sig_date_delta);
+                debug!(
+                    "DEBUG: Checking tier '{}' with delta {:?}",
+                    tier.name, tier.sig_date_delta
+                );
                 if let Some(delta) = tier.sig_date_delta {
                     tier_delta = Some(delta);
                     break;
@@ -310,7 +333,10 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
             // If no tier delta found, check tier_defaults
             if tier_delta.is_none() {
                 for tier_default in &tier_defaults {
-                    debug!("DEBUG: Checking tier_default '{}' with delta {:?}", tier_default.key, tier_default.sig_date_delta);
+                    debug!(
+                        "DEBUG: Checking tier_default '{}' with delta {:?}",
+                        tier_default.key, tier_default.sig_date_delta
+                    );
                     if let Some(delta) = tier_default.sig_date_delta {
                         tier_delta = Some(delta);
                         break;
@@ -321,15 +347,15 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
             // If we have a tier delta, check if we're within the reminder window for this year's anniversary
             if let Some(delta) = tier_delta {
                 // Calculate this year's anniversary
-                let this_year_anniversary = NaiveDate::from_ymd_opt(
-                    today.year(),
-                    sigdate.date.month(),
-                    sigdate.date.day()
-                );
+                let this_year_anniversary =
+                    NaiveDate::from_ymd_opt(today.year(), sigdate.date.month(), sigdate.date.day());
 
                 if let Some(anniversary) = this_year_anniversary {
                     let days_until = (anniversary - today).num_days();
-                    debug!("DEBUG: This year's anniversary is {}, days until: {}", anniversary, days_until);
+                    debug!(
+                        "DEBUG: This year's anniversary is {}, days until: {}",
+                        anniversary, days_until
+                    );
 
                     // Show if the anniversary is upcoming and within the delta window
                     if days_until >= 0 && days_until <= delta as i64 {
@@ -368,8 +394,7 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
                         };
 
                         // Find matching trait_default for this sigdate event
-                        let trait_info = trait_defaults.iter()
-                            .find(|t| t.key == sigdate.event);
+                        let trait_info = trait_defaults.iter().find(|t| t.key == sigdate.event);
 
                         if let Some(trait_def) = trait_info {
                             println!(
@@ -397,11 +422,14 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
                         let next_year_anniversary = NaiveDate::from_ymd_opt(
                             today.year() + 1,
                             sigdate.date.month(),
-                            sigdate.date.day()
+                            sigdate.date.day(),
                         );
                         if let Some(next_anniversary) = next_year_anniversary {
                             let days_until_next = (next_anniversary - today).num_days();
-                            debug!("DEBUG: Next year's anniversary is {}, days until: {}", next_anniversary, days_until_next);
+                            debug!(
+                                "DEBUG: Next year's anniversary is {}, days until: {}",
+                                next_anniversary, days_until_next
+                            );
 
                             if days_until_next >= 0 && days_until_next <= delta as i64 {
                                 let years_since = (today.year() + 1) - sigdate.date.year();
@@ -439,8 +467,8 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
                                 };
 
                                 // Find matching trait_default for this sigdate event
-                                let trait_info = trait_defaults.iter()
-                                    .find(|t| t.key == sigdate.event);
+                                let trait_info =
+                                    trait_defaults.iter().find(|t| t.key == sigdate.event);
 
                                 if let Some(trait_def) = trait_info {
                                     println!(
@@ -468,10 +496,16 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
                             }
                         }
                     } else {
-                        debug!("DEBUG: Days until this year ({}) is outside delta window (0 to {})", days_until, delta);
+                        debug!(
+                            "DEBUG: Days until this year ({}) is outside delta window (0 to {})",
+                            days_until, delta
+                        );
                     }
                 } else {
-                    debug!("DEBUG: Could not calculate anniversary for {}", sigdate.date);
+                    debug!(
+                        "DEBUG: Could not calculate anniversary for {}",
+                        sigdate.date
+                    );
                 }
             } else {
                 debug!("DEBUG: No tier delta found for this sigdate");
@@ -479,7 +513,9 @@ async fn motd(db: &DatabaseConnection) -> Result<(), PplError> {
         }
 
         // Update person's meta field with last_reminded if we showed them and remind_enum is OnlyOnce
-        if showed_sigdate && (remind_enum_value.is_none() || remind_enum_value.as_deref() == Some("OnlyOnce")) {
+        if showed_sigdate
+            && (remind_enum_value.is_none() || remind_enum_value.as_deref() == Some("OnlyOnce"))
+        {
             use sea_orm::ActiveValue::Set;
 
             let today_str = today.format("%Y-%m-%d").to_string();

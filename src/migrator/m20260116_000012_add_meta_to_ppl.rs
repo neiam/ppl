@@ -17,11 +17,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Ppl::Table)
-                    .add_column(
-                        ColumnDef::new(Ppl::Meta)
-                            .json_binary()
-                            .null(),
-                    )
+                    .add_column(ColumnDef::new(Ppl::Meta).json_binary().null())
                     .to_owned(),
             )
             .await

@@ -383,7 +383,7 @@ impl TierOps {
         db: &DatabaseConnection,
         ppl_id: i32,
         tier: String,
-        sig_date_delta: Option<u32>
+        sig_date_delta: Option<u32>,
     ) -> Result<(), PplError> {
         let t = tier::ActiveModel {
             id: Default::default(),
@@ -535,7 +535,7 @@ impl TierDefaultOps {
         enabled: bool,
         color: String,
         symbol: String,
-        sig_date_delta: Option<u32>
+        sig_date_delta: Option<u32>,
     ) -> Result<(), PplError> {
         let t = tier_defaults::ActiveModel {
             id: Default::default(),
