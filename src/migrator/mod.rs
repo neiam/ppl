@@ -11,6 +11,7 @@ mod m20241222_000008_create_traitsettings;
 mod m20241222_000009_create_tiersettings;
 mod m20260116_000010_add_sig_date_delta_to_tier;
 mod m20260116_000011_add_sig_date_delta_to_tier_defaults;
+mod m20260116_000012_add_meta_to_ppl;
 
 pub struct Migrator;
 
@@ -29,6 +30,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20241222_000009_create_tiersettings::Migration),
             Box::new(m20260116_000010_add_sig_date_delta_to_tier::Migration),
             Box::new(m20260116_000011_add_sig_date_delta_to_tier_defaults::Migration),
+            Box::new(m20260116_000012_add_meta_to_ppl::Migration),
         ]
     }
 }

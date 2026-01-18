@@ -14,6 +14,7 @@ pub struct Model {
     pub date_ins: Date,
     pub date_up: Date,
     pub sig_date_delta: Option<u32>,
+    pub sig_remind_enum: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

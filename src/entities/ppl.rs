@@ -12,6 +12,7 @@ pub struct Model {
     pub nick: Option<String>,
     pub date_ins: Date,
     pub date_up: Date,
+    pub meta: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

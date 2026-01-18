@@ -438,6 +438,7 @@ pub async fn run_init(
                                             nick: NotSet,
                                             date_ins: Set(Local::now().date_naive()),
                                             date_up: Set(Local::now().date_naive()),
+                                            meta: NotSet,
                                         };
                                         let ofof = of.insert(&db).await;
                                         match ofof {
@@ -492,6 +493,7 @@ pub async fn run_init(
                                             nick: NotSet,
                                             date_ins: Set(Local::now().date_naive()),
                                             date_up: Set(Local::now().date_naive()),
+                                            meta: NotSet,
                                         };
                                         let ofof = of.insert(&db).await;
                                         match ofof {
@@ -553,6 +555,7 @@ pub async fn run_init(
                                             date_ins: Set(Local::now().date_naive()),
                                             date_up: Set(Local::now().date_naive()),
                                             sig_date_delta: Default::default(),
+                                            sig_remind_enum: NotSet,
                                         })
                                         .collect::<Vec<tier_defaults::ActiveModel>>();
 

@@ -6,7 +6,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20260116_000011_add_sig_date_delta_to_tier_defaults"
+        "m_20260116_000012_add_meta_to_ppl"
     }
 }
 
@@ -16,23 +16,10 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(TierDefaults::Table)
+                    .table(Ppl::Table)
                     .add_column(
-                        ColumnDef::new(TierDefaults::SigDateDelta)
-                            .unsigned()
-                            .null(),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(TierDefaults::Table)
-                    .add_column(
-                        ColumnDef::new(TierDefaults::SigRemindEnum)
-                            .string()
+                        ColumnDef::new(Ppl::Meta)
+                            .json_binary()
                             .null(),
                     )
                     .to_owned(),
@@ -44,9 +31,8 @@ impl MigrationTrait for Migration {
         manager
             .alter_table(
                 Table::alter()
-                    .table(TierDefaults::Table)
-                    .drop_column(TierDefaults::SigDateDelta)
-                    .drop_column(TierDefaults::SigRemindEnum)
+                    .table(Ppl::Table)
+                    .drop_column(Ppl::Meta)
                     .to_owned(),
             )
             .await
@@ -54,8 +40,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-pub enum TierDefaults {
+pub enum Ppl {
     Table,
-    SigDateDelta,
-    SigRemindEnum,
+    Meta,
 }

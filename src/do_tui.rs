@@ -3,7 +3,6 @@ use crate::data::{
 };
 use crate::do_init::lcolor;
 use crate::entities::ppl::Model;
-use crate::entities::prelude::{TierDefaults, Traits};
 use crate::entities::{
     contact, ppl, relation, sig_date, tier, tier_defaults, trait_defaults, traits,
 };

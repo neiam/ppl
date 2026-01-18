@@ -137,6 +137,7 @@ impl PplOps {
             me: Set(true),
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
+            meta: NotSet,
         };
         let pp = p.insert(db).await;
         match pp {
@@ -158,6 +159,7 @@ impl PplOps {
             nick: NotSet,
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
+            meta: NotSet,
         };
         let pp = p.insert(db).await;
         match pp {
@@ -355,7 +357,7 @@ impl SigDateOps {
         event: String,
         date: Option<NaiveDate>,
         do_remind: bool,
-        with_ppl: Option<String>,
+        _with_ppl: Option<String>,
     ) -> Result<(), PplError> {
         let loaded_model = SigDate::find_by_id(id).one(db).await?;
         match loaded_model {
@@ -392,6 +394,7 @@ impl TierOps {
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
             sig_date_delta: Set(sig_date_delta),
+            sig_remind_enum: NotSet,
         };
         let tt = t.insert(db).await;
         match tt {
@@ -543,7 +546,8 @@ impl TierDefaultOps {
             symbol: Set(Option::from(symbol)),
             date_ins: Set(Local::now().date_naive()),
             date_up: Set(Local::now().date_naive()),
-            sig_date_delta: Set(sig_date_delta)
+            sig_date_delta: Set(sig_date_delta),
+            sig_remind_enum: NotSet,
         };
         let tt = t.insert(db).await;
         match tt {

@@ -24,6 +24,19 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(Tier::Table)
+                    .add_column(
+                        ColumnDef::new(Tier::SigRemindEnum)
+                            .string()
+                            .null(),
+                    )
+                    .to_owned(),
+            )
             .await
     }
 
@@ -33,6 +46,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Tier::Table)
                     .drop_column(Tier::SigDateDelta)
+                    .drop_column(Tier::SigRemindEnum)
                     .to_owned(),
             )
             .await
@@ -43,4 +57,5 @@ impl MigrationTrait for Migration {
 pub enum Tier {
     Table,
     SigDateDelta,
+    SigRemindEnum,
 }
