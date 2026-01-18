@@ -76,7 +76,7 @@ jobs:
         run: cargo build --release --verbose
 
       - name: Strip binary
-        run: strip target/release/koco
+        run: strip target/release/ppl
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
@@ -93,19 +93,19 @@ jobs:
       - name: Upload test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: koco-test-${{ matrix.arch }}-linux
-          path: target/release/koco
+          name: ppl-test-${{ matrix.arch }}-linux
+          path: target/release/ppl
 
       - name: Upload test Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: koco-test-${{ matrix.arch }}-linux.deb
+          name: ppl-test-${{ matrix.arch }}-linux.deb
           path: target/debian/*.deb
 
       - name: Upload test RPM package
         uses: actions/upload-artifact@v4
         with:
-          name: koco-test-${{ matrix.arch }}-linux.rpm
+          name: ppl-test-${{ matrix.arch }}-linux.rpm
           path: target/generate-rpm/*.rpm
 
 
@@ -120,22 +120,22 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            name: koco-x86_64-linux-gnu.tar.gz
+            name: ppl-x86_64-linux-gnu.tar.gz
             archive_cmd: tar -czf
             binary_ext: ""
             rust: "1.92"
           - os: ubuntu-24.04-arm
-            name: koco-aarch64-linux-gnu.tar.gz
+            name: ppl-aarch64-linux-gnu.tar.gz
             archive_cmd: tar -czf
             binary_ext: ""
             rust: "1.92"
           - os: macos-latest
-            name: koco-aarch64-macos.tar.gz
+            name: ppl-aarch64-macos.tar.gz
             archive_cmd: tar -czf
             binary_ext: ""
             rust: "1.92"
           - os: windows-latest
-            name: koco-x86_64-windows.zip
+            name: ppl-x86_64-windows.zip
             archive_cmd: 7z a
             binary_ext: ".exe"
             rust: "1.92"
@@ -179,20 +179,20 @@ jobs:
       - name: Strip binary (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          strip target/release/koco${{ matrix.binary_ext }}
+          strip target/release/ppl${{ matrix.binary_ext }}
 
       - name: Create release archive (Unix)
         if: matrix.os != 'windows-latest'
         run: |
           cd target/release
-          tar -czf ../../${{ matrix.name }} koco
+          tar -czf ../../${{ matrix.name }} ppl
           cd ../..
 
       - name: Create release archive (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd target/release
-          7z a ../../${{ matrix.name }} koco.exe
+          7z a ../../${{ matrix.name }} ppl.exe
           cd ../..
 
       - name: Install cargo-deb (Linux)
@@ -221,14 +221,14 @@ jobs:
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: koco-${{ matrix.os }}.deb
+          name: ppl-${{ matrix.os }}.deb
           path: target/debian/*.deb
 
       - name: Upload RPM package
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: koco-${{ matrix.os }}.rpm
+          name: ppl-${{ matrix.os }}.rpm
           path: target/generate-rpm/*.rpm
 
   create-release:
@@ -248,7 +248,7 @@ jobs:
 
       - name: Create release notes
         run: |
-          echo "# koco Release ${GITHUB_REF_NAME}" > release_notes.md
+          echo "# ppl Release ${GITHUB_REF_NAME}" > release_notes.md
           echo "" >> release_notes.md
           echo "## Changes in this release" >> release_notes.md
           echo "" >> release_notes.md
