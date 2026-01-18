@@ -1019,7 +1019,7 @@ fn render(f: &mut Frame, app: &mut Init) {
 const TEXT_FG_COLOR: Color = SLATE.c200;
 const COMPLETED_TEXT_FG_COLOR: Color = GREEN.c500;
 
-pub fn lcolor(input: &String) -> Color {
+pub fn lcolor(input: &str) -> Color {
     match input.to_lowercase().as_str() {
         "red" => RED.c500,
         "gold" => AMBER.c500,

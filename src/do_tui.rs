@@ -80,7 +80,7 @@ pub struct Editable {
     pub third: Option<String>,
 }
 
-fn key_in_tier(key: String, tiers: &Vec<tier_defaults::Model>) -> bool {
+fn key_in_tier(key: String, tiers: &[tier_defaults::Model]) -> bool {
     let t = tiers
         .iter()
         .map(|t| t.key.to_string())
@@ -88,7 +88,7 @@ fn key_in_tier(key: String, tiers: &Vec<tier_defaults::Model>) -> bool {
     t.contains(&key)
 }
 
-fn get_key_in_tier(key: String, tiers: &Vec<tier_defaults::Model>) -> bool {
+fn get_key_in_tier(key: String, tiers: &[tier_defaults::Model]) -> bool {
     let t = tiers
         .iter()
         .map(|t| t.key.to_string())

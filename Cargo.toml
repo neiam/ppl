@@ -60,3 +60,7 @@ serde_json = "1.0.149"
 upper_case_acronyms = "allow"
 large_enum_variant = "allow"
 too_many_arguments = "allow"
+cmp_owned = "allow"
+
+[lints.rust]
+unused = "allow"
